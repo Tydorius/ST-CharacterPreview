@@ -1,5 +1,7 @@
 # Character Details Popup
 
+NOTE: Note yet working, only uploaded/public for easy testing of the manifest/etc.
+
 A SillyTavern extension that displays a detailed preview modal when clicking on character cards, allowing users to review character information before starting a chat.
 
 ## Features
