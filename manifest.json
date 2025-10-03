@@ -1,0 +1,10 @@
+{
+    "display_name": "Character Details Popup",
+    "author": "SillyTavernPlugins",
+    "version": "1.0.0",
+    "js": "script.js",
+    "css": "style.css",
+    "minimum_client_version": "1.13.4",
+    "loading_order": 100,
+    "homePage": "https://github.com/SillyTavern/SillyTavern"
+}

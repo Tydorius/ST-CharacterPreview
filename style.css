@@ -1,0 +1,190 @@
+/* Character Details Popup Extension Styles */
+
+/* Modal Overlay */
+.cdp-modal__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: cdp-fadeIn 0.2s ease-in-out;
+}
+
+@keyframes cdp-fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Modal Container */
+.cdp-modal {
+    background-color: var(--SmartThemeBodyColor, #ffffff);
+    color: var(--SmartThemeEmColor, #000000);
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 80vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: cdp-slideIn 0.3s ease-out;
+}
+
+@keyframes cdp-slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Character Image */
+.cdp-modal__image {
+    max-width: 100%;
+    max-height: 400px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    align-self: center;
+}
+
+/* Character Name */
+.cdp-modal__name {
+    margin: 0;
+    padding: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-align: center;
+    color: var(--SmartThemeEmColor, #000000);
+}
+
+/* Field Container */
+.cdp-field {
+    margin: 0.5rem 0;
+    padding: 1rem;
+    background-color: var(--black30a, rgba(0, 0, 0, 0.1));
+    border-radius: 8px;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.cdp-field strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    color: var(--SmartThemeEmColor, #000000);
+}
+
+.cdp-field p {
+    margin: 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Modal Footer */
+.cdp-modal__footer {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(0, 0, 0, 0.2));
+}
+
+/* Buttons */
+.cdp-button {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cdp-button--primary {
+    background-color: var(--SmartThemeQuoteColor, #4a9eff);
+    color: white;
+}
+
+.cdp-button--primary:hover {
+    background-color: var(--SmartThemeQuoteColor, #3a8eef);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+.cdp-button--secondary {
+    background-color: var(--grey70, #999999);
+    color: white;
+}
+
+.cdp-button--secondary:hover {
+    background-color: var(--grey50, #777777);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cdp-button:active {
+    transform: translateY(0);
+}
+
+/* Scrollbar Styling */
+.cdp-modal::-webkit-scrollbar,
+.cdp-field::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cdp-modal::-webkit-scrollbar-track,
+.cdp-field::-webkit-scrollbar-track {
+    background: var(--black30a, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+}
+
+.cdp-modal::-webkit-scrollbar-thumb,
+.cdp-field::-webkit-scrollbar-thumb {
+    background: var(--grey70, #999999);
+    border-radius: 4px;
+}
+
+.cdp-modal::-webkit-scrollbar-thumb:hover,
+.cdp-field::-webkit-scrollbar-thumb:hover {
+    background: var(--grey50, #777777);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cdp-modal {
+        max-width: 95vw;
+        max-height: 90vh;
+        padding: 1.5rem;
+    }
+
+    .cdp-modal__name {
+        font-size: 1.5rem;
+    }
+
+    .cdp-modal__footer {
+        flex-direction: column;
+    }
+
+    .cdp-button {
+        width: 100%;
+    }
+}
