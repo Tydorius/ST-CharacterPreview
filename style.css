@@ -9,7 +9,7 @@
     bottom: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, var(--cdp-overlay-opacity, 0.7));
     display: flex;
     justify-content: center;
     align-items: center;
@@ -30,10 +30,10 @@
 .cdp-modal {
     background-color: var(--SmartThemeBodyColor, #ffffff);
     color: var(--SmartThemeEmColor, #000000);
-    padding: 2rem;
-    border-radius: 12px;
-    max-width: 80vw;
-    max-height: 80vh;
+    padding: var(--cdp-modal-padding, 2rem);
+    border-radius: var(--cdp-modal-border-radius, 12px);
+    max-width: var(--cdp-modal-width, 80vw);
+    max-height: var(--cdp-modal-height, 80vh);
     overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
@@ -56,7 +56,7 @@
 /* Character Image */
 .cdp-modal__image {
     max-width: 100%;
-    max-height: 400px;
+    max-height: var(--cdp-image-max-height, 400px);
     width: auto;
     height: auto;
     object-fit: contain;
@@ -81,7 +81,7 @@
     background-color: var(--black30a, rgba(0, 0, 0, 0.1));
     border-radius: 8px;
     overflow-y: auto;
-    max-height: 200px;
+    max-height: var(--cdp-field-max-height, 200px);
 }
 
 .cdp-field strong {
@@ -120,23 +120,23 @@
 }
 
 .cdp-button--primary {
-    background-color: var(--SmartThemeQuoteColor, #4a9eff);
+    background-color: var(--cdp-primary-button-color, #4a9eff);
     color: white;
 }
 
 .cdp-button--primary:hover {
-    background-color: var(--SmartThemeQuoteColor, #3a8eef);
+    filter: brightness(0.9);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
 }
 
 .cdp-button--secondary {
-    background-color: var(--grey70, #999999);
+    background-color: var(--cdp-secondary-button-color, #999999);
     color: white;
 }
 
 .cdp-button--secondary:hover {
-    background-color: var(--grey50, #777777);
+    filter: brightness(0.9);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

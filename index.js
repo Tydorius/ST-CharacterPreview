@@ -1,10 +1,26 @@
-import { eventSource, event_types, characters, selectCharacterById } from '../../../../script.js';
+import { eventSource, event_types, characters, selectCharacterById, saveSettingsDebounced } from '../../../../script.js';
+import { renderExtensionTemplateAsync } from '../../../extensions.js';
+import { power_user } from '../../../power-user.js';
 
-const extensionName = 'character-details-popup';
+const extensionName = 'third-party/ST-CharacterPreview';
+const extensionFolder = 'third-party/ST-CharacterPreview';
 
 // Store reference to currently open modal and event handler
 let currentModal = null;
 let escapeKeyHandler = null;
+
+// Extension settings with defaults
+let extensionSettings = {
+    modalWidth: 80,
+    modalHeight: 80,
+    modalPadding: 2,
+    modalBorderRadius: 12,
+    overlayOpacity: 70,
+    primaryButtonColor: '#4a9eff',
+    secondaryButtonColor: '#999999',
+    imageMaxHeight: 400,
+    fieldMaxHeight: 200,
+};
 
 /**
  * Helper function to log messages with extension prefix
@@ -263,6 +279,172 @@ function setupCharacterClickInterception() {
 }
 
 /**
+ * Loads the extension settings from power_user
+ */
+function loadSettings() {
+    if (power_user.extensions && power_user.extensions[extensionName]) {
+        Object.assign(extensionSettings, power_user.extensions[extensionName]);
+        log('Settings loaded');
+    }
+}
+
+/**
+ * Saves the extension settings to power_user
+ */
+function saveSettings() {
+    if (!power_user.extensions) {
+        power_user.extensions = {};
+    }
+    power_user.extensions[extensionName] = extensionSettings;
+    saveSettingsDebounced();
+    log('Settings saved');
+}
+
+/**
+ * Apply current settings to the modal CSS
+ */
+function applySettings() {
+    // Create or update CSS custom properties
+    const root = document.documentElement;
+    root.style.setProperty('--cdp-modal-width', `${extensionSettings.modalWidth}vw`);
+    root.style.setProperty('--cdp-modal-height', `${extensionSettings.modalHeight}vh`);
+    root.style.setProperty('--cdp-modal-padding', `${extensionSettings.modalPadding}rem`);
+    root.style.setProperty('--cdp-modal-border-radius', `${extensionSettings.modalBorderRadius}px`);
+    root.style.setProperty('--cdp-overlay-opacity', `${extensionSettings.overlayOpacity / 100}`);
+    root.style.setProperty('--cdp-primary-button-color', extensionSettings.primaryButtonColor);
+    root.style.setProperty('--cdp-secondary-button-color', extensionSettings.secondaryButtonColor);
+    root.style.setProperty('--cdp-image-max-height', `${extensionSettings.imageMaxHeight}px`);
+    root.style.setProperty('--cdp-field-max-height', `${extensionSettings.fieldMaxHeight}px`);
+}
+
+/**
+ * Reset settings to defaults
+ */
+function resetSettings() {
+    extensionSettings = {
+        modalWidth: 80,
+        modalHeight: 80,
+        modalPadding: 2,
+        modalBorderRadius: 12,
+        overlayOpacity: 70,
+        primaryButtonColor: '#4a9eff',
+        secondaryButtonColor: '#999999',
+        imageMaxHeight: 400,
+        fieldMaxHeight: 200,
+    };
+    saveSettings();
+    applySettings();
+    updateSettingsUI();
+    log('Settings reset to defaults');
+}
+
+/**
+ * Update the settings UI to reflect current values
+ */
+function updateSettingsUI() {
+    $('#cdp-modal-width').val(extensionSettings.modalWidth);
+    $('#cdp-modal-width-value').text(`${extensionSettings.modalWidth}%`);
+
+    $('#cdp-modal-height').val(extensionSettings.modalHeight);
+    $('#cdp-modal-height-value').text(`${extensionSettings.modalHeight}%`);
+
+    $('#cdp-modal-padding').val(extensionSettings.modalPadding);
+    $('#cdp-modal-padding-value').text(`${extensionSettings.modalPadding}rem`);
+
+    $('#cdp-modal-border-radius').val(extensionSettings.modalBorderRadius);
+    $('#cdp-modal-border-radius-value').text(`${extensionSettings.modalBorderRadius}px`);
+
+    $('#cdp-overlay-opacity').val(extensionSettings.overlayOpacity);
+    $('#cdp-overlay-opacity-value').text(`${extensionSettings.overlayOpacity}%`);
+
+    $('#cdp-primary-button-color').val(extensionSettings.primaryButtonColor);
+    $('#cdp-secondary-button-color').val(extensionSettings.secondaryButtonColor);
+
+    $('#cdp-image-max-height').val(extensionSettings.imageMaxHeight);
+    $('#cdp-image-max-height-value').text(`${extensionSettings.imageMaxHeight}px`);
+
+    $('#cdp-field-max-height').val(extensionSettings.fieldMaxHeight);
+    $('#cdp-field-max-height-value').text(`${extensionSettings.fieldMaxHeight}px`);
+}
+
+/**
+ * Add extension settings to the Extensions panel
+ */
+async function addExtensionSettings() {
+    const settingsHtml = await renderExtensionTemplateAsync(extensionFolder, 'settings');
+    $('#extensions_settings2').append(settingsHtml);
+
+    // Setup event listeners for all settings controls
+    $('#cdp-modal-width').on('input', function() {
+        extensionSettings.modalWidth = Number($(this).val());
+        $('#cdp-modal-width-value').text(`${extensionSettings.modalWidth}%`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-modal-height').on('input', function() {
+        extensionSettings.modalHeight = Number($(this).val());
+        $('#cdp-modal-height-value').text(`${extensionSettings.modalHeight}%`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-modal-padding').on('input', function() {
+        extensionSettings.modalPadding = Number($(this).val());
+        $('#cdp-modal-padding-value').text(`${extensionSettings.modalPadding}rem`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-modal-border-radius').on('input', function() {
+        extensionSettings.modalBorderRadius = Number($(this).val());
+        $('#cdp-modal-border-radius-value').text(`${extensionSettings.modalBorderRadius}px`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-overlay-opacity').on('input', function() {
+        extensionSettings.overlayOpacity = Number($(this).val());
+        $('#cdp-overlay-opacity-value').text(`${extensionSettings.overlayOpacity}%`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-primary-button-color').on('change', function() {
+        extensionSettings.primaryButtonColor = $(this).val();
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-secondary-button-color').on('change', function() {
+        extensionSettings.secondaryButtonColor = $(this).val();
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-image-max-height').on('input', function() {
+        extensionSettings.imageMaxHeight = Number($(this).val());
+        $('#cdp-image-max-height-value').text(`${extensionSettings.imageMaxHeight}px`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-field-max-height').on('input', function() {
+        extensionSettings.fieldMaxHeight = Number($(this).val());
+        $('#cdp-field-max-height-value').text(`${extensionSettings.fieldMaxHeight}px`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-reset-settings').on('click', function() {
+        resetSettings();
+    });
+
+    // Initialize UI with current settings
+    updateSettingsUI();
+}
+
+/**
  * Initialize the extension
  */
 function init() {
@@ -275,5 +457,10 @@ function init() {
     });
 }
 
-// Start initialization
-init();
+// jQuery initialization
+jQuery(async () => {
+    loadSettings();
+    applySettings();
+    await addExtensionSettings();
+    init();
+});
