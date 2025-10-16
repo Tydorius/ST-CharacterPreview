@@ -253,6 +253,16 @@ function setupCharacterClickInterception() {
 
     // Use event delegation to intercept character card clicks
     characterListContainer.addEventListener('click', function(event) {
+        // Check if bulk edit mode is active
+        // When bulk edit is enabled, the container has the 'bulk_select' class
+        const isBulkEditMode = characterListContainer.classList.contains('bulk_select');
+
+        if (isBulkEditMode) {
+            // Don't interfere with bulk edit mode - let SillyTavern handle the click
+            log('Bulk edit mode active - skipping popup');
+            return;
+        }
+
         // Find the .character_select element (could be the target or an ancestor)
         const characterCard = event.target.closest('.character_select');
 
