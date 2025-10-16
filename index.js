@@ -1,4 +1,4 @@
-import { eventSource, event_types, characters, selectCharacterById } from '../../../script.js';
+import { eventSource, event_types, characters, selectCharacterById } from '../../../../script.js';
 
 const extensionName = 'character-details-popup';
 
