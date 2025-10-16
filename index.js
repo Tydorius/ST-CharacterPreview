@@ -1,4 +1,4 @@
-import { eventSource, event_types, characters, selectCharacterById, saveSettingsDebounced } from '../../../../script.js';
+import { eventSource, event_types, characters, selectCharacterById, saveSettingsDebounced, getRequestHeaders } from '../../../../script.js';
 import { renderExtensionTemplateAsync } from '../../../extensions.js';
 import { power_user } from '../../../power-user.js';
 
@@ -24,11 +24,19 @@ let extensionSettings = {
     contentWidth: 50,
     imageMaxHeight: 400,
     responsiveBreakpoint: 700,
+    useThemePrimaryColor: true,
+    useThemeSecondaryColor: true,
+    fontColor: '#ffffff',
+    backgroundColor: '#1a1a1a',
+    backgroundOpacity: 95,
+    blurStrength: 10,
+    useThemeFontColor: true,
+    useThemeBackgroundColor: true,
 };
 
 /**
- * Helper function to log messages with extension prefix
- * @param {string} message - The message to log
+ * Log message with extension prefix
+ * @param {string} message - Message to log
  */
 function log(message) {
     console.log(`[Character Details Popup] ${message}`);
@@ -77,7 +85,6 @@ async function loadMarkedLibrary() {
 function renderMarkdown(text) {
     if (!text) return '';
 
-    // If marked isn't loaded, return plain text
     if (!marked) {
         return text;
     }
@@ -87,6 +94,31 @@ function renderMarkdown(text) {
     } catch (error) {
         console.error('[Character Details Popup] Markdown parsing error:', error);
         return text;
+    }
+}
+
+/**
+ * Fetch full character data from the server
+ * @param {string} avatarUrl - The avatar filename/URL of the character
+ * @returns {Promise<Object>} Full character data object
+ */
+async function fetchCharacterData(avatarUrl) {
+    try {
+        const response = await fetch('/api/characters/get', {
+            method: 'POST',
+            headers: getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: avatarUrl }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.character || data;
+    } catch (error) {
+        console.error('[Character Details Popup] Failed to fetch character data:', error);
+        throw error;
     }
 }
 
@@ -113,29 +145,22 @@ function closeModal() {
  * @param {number} characterId - The character ID for Start Chat functionality
  */
 function openModal(modalElement, characterId) {
-    // Close any existing modal first
     closeModal();
 
-    // Store reference to current modal
     currentModal = modalElement;
-
-    // Append modal to body
     document.body.appendChild(modalElement);
 
-    // Setup Close button
     const closeButton = modalElement.querySelector('#cdp-close');
     if (closeButton) {
         closeButton.addEventListener('click', closeModal);
     }
 
-    // Setup overlay click (close only if clicking on the overlay itself)
     modalElement.addEventListener('click', function(event) {
         if (event.target === modalElement) {
             closeModal();
         }
     });
 
-    // Setup Escape key handler
     escapeKeyHandler = function(event) {
         if (event.key === 'Escape') {
             closeModal();
@@ -143,7 +168,6 @@ function openModal(modalElement, characterId) {
     };
     document.addEventListener('keydown', escapeKeyHandler);
 
-    // Setup Start Chat button
     const startChatButton = modalElement.querySelector('#cdp-start-chat');
     if (startChatButton) {
         startChatButton.addEventListener('click', function() {
@@ -161,13 +185,11 @@ function openModal(modalElement, characterId) {
 async function handleStartChat(characterId) {
     log(`Starting chat with character ID: ${characterId}`);
 
-    // Close the modal first
     closeModal();
 
-    // Select the character
     try {
         await selectCharacterById(String(characterId));
-        log('Chat started successfully');
+        log('Chat started');
     } catch (error) {
         console.error('[Character Details Popup] Unable to start chat:', error);
     }
@@ -176,103 +198,100 @@ async function handleStartChat(characterId) {
 /**
  * Create modal HTML structure for character details
  * @param {Object} characterData - Character data object
+ * @param {string} localAvatar - Local avatar filename (not the source URL)
  * @returns {HTMLElement} Modal overlay element
  */
-function createCharacterModal(characterData) {
-    // Use optional chaining and nullish coalescing for safety
-    const name = characterData?.name ?? 'Unnamed Character';
-    const description = characterData?.description ?? 'No description available.';
-    const creatorNotes = characterData?.creator_notes ?? '';
-    const scenario = characterData?.scenario ?? '';
-    const avatar = characterData?.avatar ?? '';
-    const firstMessage = characterData?.first_mes ?? '';
-    const personality = characterData?.personality ?? '';
-    const exampleMessages = characterData?.mes_example ?? '';
+function createCharacterModal(characterData, localAvatar) {
+    const data = characterData?.data || characterData;
 
-    // Create overlay
+    const name = data?.name ?? 'Unnamed Character';
+    const description = data?.description ?? 'No description available.';
+    const creatorNotes = data?.creator_notes ?? '';
+    const scenario = data?.scenario ?? '';
+    const avatar = localAvatar ?? data?.avatar ?? '';
+    const firstMessage = data?.first_mes ?? '';
+    const personality = data?.personality ?? '';
+    const exampleMessages = data?.mes_example ?? '';
+
     const overlay = document.createElement('div');
     overlay.className = 'cdp-modal__overlay';
 
-    // Create modal container
     const modal = document.createElement('div');
     modal.className = 'cdp-modal';
 
-    // Create scrollable content wrapper
     const content = document.createElement('div');
     content.className = 'cdp-modal__content';
 
-    // Create header section (image + name)
     const header = document.createElement('div');
     header.className = 'cdp-modal__header';
 
-    // Create character image only if avatar is available
     if (avatar) {
         const img = document.createElement('img');
         img.className = 'cdp-modal__image';
         img.src = `/characters/${encodeURIComponent(avatar)}`;
         img.alt = name;
 
-        // Add error handler for broken images
         img.onerror = function() {
-            this.src = '/img/default-avatars/aventura.png';
+            this.src = 'img/ai4.png';
             log(`Failed to load avatar: ${avatar}, using default`);
         };
 
         header.appendChild(img);
     }
 
-    // Create character name heading
     const nameHeading = document.createElement('h2');
     nameHeading.className = 'cdp-modal__name';
     nameHeading.textContent = name;
     header.appendChild(nameHeading);
 
-    // Append header to content
     content.appendChild(header);
 
-    // Create body section (all description fields)
     const body = document.createElement('div');
     body.className = 'cdp-modal__body';
 
-    // Create description field with markdown support
-    const descriptionDiv = document.createElement('div');
-    descriptionDiv.className = 'cdp-field cdp-description';
-    const descLabel = document.createElement('strong');
-    descLabel.textContent = 'Description:';
+    const descriptionDetails = document.createElement('details');
+    descriptionDetails.className = 'cdp-collapsible';
+    descriptionDetails.open = true;
+    const descriptionSummary = document.createElement('summary');
+    descriptionSummary.className = 'cdp-collapsible__summary';
+    descriptionSummary.textContent = 'Description';
     const descContent = document.createElement('div');
-    descContent.className = 'cdp-markdown-content';
+    descContent.className = 'cdp-collapsible__content cdp-markdown-content';
     descContent.innerHTML = renderMarkdown(description);
-    descriptionDiv.appendChild(descLabel);
-    descriptionDiv.appendChild(descContent);
-    body.appendChild(descriptionDiv);
+    descriptionDetails.appendChild(descriptionSummary);
+    descriptionDetails.appendChild(descContent);
+    body.appendChild(descriptionDetails);
 
-    // Add creator notes only if non-empty
-    if (creatorNotes && creatorNotes.trim()) {
-        const creatorNotesDiv = document.createElement('div');
-        creatorNotesDiv.className = 'cdp-field cdp-creator-notes';
-        const creatorLabel = document.createElement('strong');
-        creatorLabel.textContent = 'Creator Notes:';
-        const creatorContent = document.createElement('p');
-        creatorContent.textContent = creatorNotes.trim();
-        creatorNotesDiv.appendChild(creatorLabel);
-        creatorNotesDiv.appendChild(creatorContent);
-        body.appendChild(creatorNotesDiv);
+    if (firstMessage && firstMessage.trim()) {
+        const firstMessageDetails = document.createElement('details');
+        firstMessageDetails.className = 'cdp-collapsible';
+        const firstMessageSummary = document.createElement('summary');
+        firstMessageSummary.className = 'cdp-collapsible__summary';
+        firstMessageSummary.textContent = 'First Message';
+        const firstMessageContent = document.createElement('div');
+        firstMessageContent.className = 'cdp-collapsible__content cdp-markdown-content';
+        firstMessageContent.innerHTML = renderMarkdown(firstMessage.trim());
+        firstMessageDetails.appendChild(firstMessageSummary);
+        firstMessageDetails.appendChild(firstMessageContent);
+        body.appendChild(firstMessageDetails);
     }
 
-    // Add scenario only if non-empty
     if (scenario && scenario.trim()) {
-        const scenarioDiv = document.createElement('div');
-        scenarioDiv.className = 'cdp-field cdp-scenario';
-        const scenarioLabel = document.createElement('strong');
-        scenarioLabel.textContent = 'Scenario:';
-        const scenarioContent = document.createElement('p');
-        scenarioContent.textContent = scenario.trim();
-        scenarioDiv.appendChild(scenarioLabel);
-        scenarioDiv.appendChild(scenarioContent);
-        body.appendChild(scenarioDiv);
+        const scenarioDetails = document.createElement('details');
+        scenarioDetails.className = 'cdp-collapsible';
+        const scenarioSummary = document.createElement('summary');
+        scenarioSummary.className = 'cdp-collapsible__summary';
+        scenarioSummary.textContent = 'Scenario';
+        const scenarioContent = document.createElement('div');
+        scenarioContent.className = 'cdp-collapsible__content';
+        const scenarioText = document.createElement('p');
+        scenarioText.textContent = scenario.trim();
+        scenarioContent.appendChild(scenarioText);
+        scenarioDetails.appendChild(scenarioSummary);
+        scenarioDetails.appendChild(scenarioContent);
+        body.appendChild(scenarioDetails);
     }
 
-    // Add personality only if non-empty (collapsible)
     if (personality && personality.trim()) {
         const personalityDetails = document.createElement('details');
         personalityDetails.className = 'cdp-collapsible';
@@ -289,22 +308,22 @@ function createCharacterModal(characterData) {
         body.appendChild(personalityDetails);
     }
 
-    // Add first message only if non-empty (collapsible, with markdown)
-    if (firstMessage && firstMessage.trim()) {
-        const firstMessageDetails = document.createElement('details');
-        firstMessageDetails.className = 'cdp-collapsible';
-        const firstMessageSummary = document.createElement('summary');
-        firstMessageSummary.className = 'cdp-collapsible__summary';
-        firstMessageSummary.textContent = 'First Message';
-        const firstMessageContent = document.createElement('div');
-        firstMessageContent.className = 'cdp-collapsible__content cdp-markdown-content';
-        firstMessageContent.innerHTML = renderMarkdown(firstMessage.trim());
-        firstMessageDetails.appendChild(firstMessageSummary);
-        firstMessageDetails.appendChild(firstMessageContent);
-        body.appendChild(firstMessageDetails);
+    if (creatorNotes && creatorNotes.trim()) {
+        const creatorNotesDetails = document.createElement('details');
+        creatorNotesDetails.className = 'cdp-collapsible';
+        const creatorNotesSummary = document.createElement('summary');
+        creatorNotesSummary.className = 'cdp-collapsible__summary';
+        creatorNotesSummary.textContent = 'Creator Notes';
+        const creatorNotesContent = document.createElement('div');
+        creatorNotesContent.className = 'cdp-collapsible__content';
+        const creatorNotesText = document.createElement('p');
+        creatorNotesText.textContent = creatorNotes.trim();
+        creatorNotesContent.appendChild(creatorNotesText);
+        creatorNotesDetails.appendChild(creatorNotesSummary);
+        creatorNotesDetails.appendChild(creatorNotesContent);
+        body.appendChild(creatorNotesDetails);
     }
 
-    // Add example messages only if non-empty (collapsible)
     if (exampleMessages && exampleMessages.trim()) {
         const exampleDetails = document.createElement('details');
         exampleDetails.className = 'cdp-collapsible';
@@ -321,13 +340,9 @@ function createCharacterModal(characterData) {
         body.appendChild(exampleDetails);
     }
 
-    // Append body to content
     content.appendChild(body);
-
-    // Append content to modal
     modal.appendChild(content);
 
-    // Create footer with buttons (fixed at bottom)
     const footer = document.createElement('div');
     footer.className = 'cdp-modal__footer';
 
@@ -345,7 +360,6 @@ function createCharacterModal(characterData) {
     footer.appendChild(closeButton);
     modal.appendChild(footer);
 
-    // Append modal to overlay
     overlay.appendChild(modal);
 
     return overlay;
@@ -355,7 +369,6 @@ function createCharacterModal(characterData) {
  * Setup click interception for character cards
  */
 function setupCharacterClickInterception() {
-    // Get the character list container
     const characterListContainer = document.getElementById('rm_print_characters_block');
 
     if (!characterListContainer) {
@@ -363,33 +376,25 @@ function setupCharacterClickInterception() {
         return;
     }
 
-    // Use event delegation to intercept character card clicks
-    characterListContainer.addEventListener('click', function(event) {
-        // Check if bulk edit mode is active
-        // When bulk edit is enabled, the container has the 'bulk_select' class
+    characterListContainer.addEventListener('click', async function(event) {
         const isBulkEditMode = characterListContainer.classList.contains('bulk_select');
 
         if (isBulkEditMode) {
-            // Don't interfere with bulk edit mode - let SillyTavern handle the click
-            log('Bulk edit mode active - skipping popup');
+            log('Bulk edit mode active');
             return;
         }
 
-        // Find the .character_select element (could be the target or an ancestor)
         const characterCard = event.target.closest('.character_select');
 
         if (characterCard) {
-            // Prevent default behavior and stop propagation
             event.preventDefault();
             event.stopPropagation();
 
-            // Extract character ID from data attribute
             const characterId = characterCard.getAttribute('data-chid');
 
             if (characterId) {
                 log(`Character clicked - ID: ${characterId}`);
 
-                // Get the character object by ID
                 const character = characters[Number(characterId)];
 
                 if (!character) {
@@ -397,28 +402,23 @@ function setupCharacterClickInterception() {
                     return;
                 }
 
-                // Extract character data
-                const characterData = {
-                    name: character.name,
-                    description: character.description,
-                    creator_notes: character.creator_notes,
-                    scenario: character.scenario,
-                    avatar: character.avatar,
-                    first_mes: character.first_mes,
-                    personality: character.personality,
-                    mes_example: character.mes_example,
-                };
+                try {
+                    log(`Fetching character data: ${character.avatar}`);
+                    const fullCharacterData = await fetchCharacterData(character.avatar);
 
-                log(`Character data loaded: ${characterData.name}`);
+                    log(`Character data loaded: ${fullCharacterData.name || character.name}`);
 
-                // Create and open the modal
-                const modal = createCharacterModal(characterData);
-                openModal(modal, Number(characterId));
+                    const modal = createCharacterModal(fullCharacterData, character.avatar);
+                    openModal(modal, Number(characterId));
+                } catch (error) {
+                    console.error('[Character Details Popup] Failed to load character:', error);
+                    alert('Failed to load character details. Please try again.');
+                }
             } else {
                 log('Character card clicked but no data-chid found');
             }
         }
-    }, true); // Use capture phase to intercept before other handlers
+    }, true);
 
     log('Character click interception setup complete');
 }
@@ -449,15 +449,32 @@ function saveSettings() {
  * Apply current settings to the modal CSS
  */
 function applySettings() {
-    // Create or update CSS custom properties
     const root = document.documentElement;
     root.style.setProperty('--cdp-modal-width', `${extensionSettings.modalWidth}vw`);
     root.style.setProperty('--cdp-modal-height', `${extensionSettings.modalHeight}vh`);
     root.style.setProperty('--cdp-modal-padding', `${extensionSettings.modalPadding}rem`);
     root.style.setProperty('--cdp-modal-border-radius', `${extensionSettings.modalBorderRadius}px`);
     root.style.setProperty('--cdp-overlay-opacity', `${extensionSettings.overlayOpacity / 100}`);
-    root.style.setProperty('--cdp-primary-button-color', extensionSettings.primaryButtonColor);
-    root.style.setProperty('--cdp-secondary-button-color', extensionSettings.secondaryButtonColor);
+
+    const primaryColor = extensionSettings.useThemePrimaryColor
+        ? 'var(--active)'
+        : extensionSettings.primaryButtonColor;
+    const secondaryColor = extensionSettings.useThemeSecondaryColor
+        ? 'var(--SmartThemeBlurTintColor)'
+        : extensionSettings.secondaryButtonColor;
+    const fontColor = extensionSettings.useThemeFontColor
+        ? 'var(--SmartThemeEmColor)'
+        : extensionSettings.fontColor;
+    const backgroundColor = extensionSettings.useThemeBackgroundColor
+        ? 'var(--SmartThemeBlurTintColor)'
+        : extensionSettings.backgroundColor;
+
+    root.style.setProperty('--cdp-primary-button-color', primaryColor);
+    root.style.setProperty('--cdp-secondary-button-color', secondaryColor);
+    root.style.setProperty('--cdp-font-color', fontColor);
+    root.style.setProperty('--cdp-background-color', backgroundColor);
+    root.style.setProperty('--cdp-background-opacity', `${extensionSettings.backgroundOpacity / 100}`);
+    root.style.setProperty('--cdp-blur-strength', `${extensionSettings.blurStrength}px`);
     root.style.setProperty('--cdp-content-width', `${extensionSettings.contentWidth}%`);
     root.style.setProperty('--cdp-image-max-height', `${extensionSettings.imageMaxHeight}px`);
     root.style.setProperty('--cdp-responsive-breakpoint', `${extensionSettings.responsiveBreakpoint}px`);
@@ -478,6 +495,14 @@ function resetSettings() {
         contentWidth: 50,
         imageMaxHeight: 400,
         responsiveBreakpoint: 700,
+        useThemePrimaryColor: true,
+        useThemeSecondaryColor: true,
+        fontColor: '#ffffff',
+        backgroundColor: '#1a1a1a',
+        backgroundOpacity: 95,
+        blurStrength: 10,
+        useThemeFontColor: true,
+        useThemeBackgroundColor: true,
     };
     saveSettings();
     applySettings();
@@ -504,8 +529,27 @@ function updateSettingsUI() {
     $('#cdp-overlay-opacity').val(extensionSettings.overlayOpacity);
     $('#cdp-overlay-opacity-value').text(`${extensionSettings.overlayOpacity}%`);
 
+    $('#cdp-use-theme-font-color').prop('checked', extensionSettings.useThemeFontColor);
+    $('#cdp-font-color').val(extensionSettings.fontColor);
+    $('#cdp-font-color').prop('disabled', extensionSettings.useThemeFontColor);
+
+    $('#cdp-use-theme-background-color').prop('checked', extensionSettings.useThemeBackgroundColor);
+    $('#cdp-background-color').val(extensionSettings.backgroundColor);
+    $('#cdp-background-color').prop('disabled', extensionSettings.useThemeBackgroundColor);
+
+    $('#cdp-background-opacity').val(extensionSettings.backgroundOpacity);
+    $('#cdp-background-opacity-value').text(`${extensionSettings.backgroundOpacity}%`);
+
+    $('#cdp-blur-strength').val(extensionSettings.blurStrength);
+    $('#cdp-blur-strength-value').text(`${extensionSettings.blurStrength}px`);
+
+    $('#cdp-use-theme-primary-color').prop('checked', extensionSettings.useThemePrimaryColor);
     $('#cdp-primary-button-color').val(extensionSettings.primaryButtonColor);
+    $('#cdp-primary-button-color').prop('disabled', extensionSettings.useThemePrimaryColor);
+
+    $('#cdp-use-theme-secondary-color').prop('checked', extensionSettings.useThemeSecondaryColor);
     $('#cdp-secondary-button-color').val(extensionSettings.secondaryButtonColor);
+    $('#cdp-secondary-button-color').prop('disabled', extensionSettings.useThemeSecondaryColor);
 
     $('#cdp-content-width').val(extensionSettings.contentWidth);
     $('#cdp-content-width-value').text(`${extensionSettings.contentWidth}%`);
@@ -524,7 +568,6 @@ async function addExtensionSettings() {
     const settingsHtml = await renderExtensionTemplateAsync(extensionFolder, 'settings');
     $('#extensions_settings2').append(settingsHtml);
 
-    // Setup event listeners for all settings controls
     $('#cdp-modal-width').on('input', function() {
         extensionSettings.modalWidth = Number($(this).val());
         $('#cdp-modal-width-value').text(`${extensionSettings.modalWidth}%`);
@@ -560,8 +603,62 @@ async function addExtensionSettings() {
         saveSettings();
     });
 
+    $('#cdp-use-theme-font-color').on('change', function() {
+        extensionSettings.useThemeFontColor = $(this).prop('checked');
+        $('#cdp-font-color').prop('disabled', extensionSettings.useThemeFontColor);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-font-color').on('change', function() {
+        extensionSettings.fontColor = $(this).val();
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-use-theme-background-color').on('change', function() {
+        extensionSettings.useThemeBackgroundColor = $(this).prop('checked');
+        $('#cdp-background-color').prop('disabled', extensionSettings.useThemeBackgroundColor);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-background-color').on('change', function() {
+        extensionSettings.backgroundColor = $(this).val();
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-background-opacity').on('input', function() {
+        extensionSettings.backgroundOpacity = Number($(this).val());
+        $('#cdp-background-opacity-value').text(`${extensionSettings.backgroundOpacity}%`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-blur-strength').on('input', function() {
+        extensionSettings.blurStrength = Number($(this).val());
+        $('#cdp-blur-strength-value').text(`${extensionSettings.blurStrength}px`);
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-use-theme-primary-color').on('change', function() {
+        extensionSettings.useThemePrimaryColor = $(this).prop('checked');
+        $('#cdp-primary-button-color').prop('disabled', extensionSettings.useThemePrimaryColor);
+        applySettings();
+        saveSettings();
+    });
+
     $('#cdp-primary-button-color').on('change', function() {
         extensionSettings.primaryButtonColor = $(this).val();
+        applySettings();
+        saveSettings();
+    });
+
+    $('#cdp-use-theme-secondary-color').on('change', function() {
+        extensionSettings.useThemeSecondaryColor = $(this).prop('checked');
+        $('#cdp-secondary-button-color').prop('disabled', extensionSettings.useThemeSecondaryColor);
         applySettings();
         saveSettings();
     });
@@ -597,7 +694,6 @@ async function addExtensionSettings() {
         resetSettings();
     });
 
-    // Initialize UI with current settings
     updateSettingsUI();
 }
 
@@ -605,19 +701,16 @@ async function addExtensionSettings() {
  * Initialize the extension
  */
 async function init() {
-    log('Initializing extension...');
+    log('Initializing extension');
 
-    // Load markdown library
     await loadMarkedLibrary();
 
-    // Listen for APP_READY event
     eventSource.on(event_types.APP_READY, () => {
-        log('Extension loaded and SillyTavern is ready.');
+        log('Extension loaded');
         setupCharacterClickInterception();
     });
 }
 
-// jQuery initialization
 jQuery(async () => {
     loadSettings();
     applySettings();

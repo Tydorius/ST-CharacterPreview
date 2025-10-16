@@ -5,7 +5,7 @@
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <h3>Modal Appearance</h3>
+            <h3>Display Settings</h3>
 
             <label for="cdp-modal-width">
                 <span>Modal Width (%)</span>
@@ -32,7 +32,7 @@
             <span id="cdp-modal-border-radius-value">12px</span>
 
             <hr>
-            <h3>Colors</h3>
+            <h3>Colors & Effects</h3>
 
             <label for="cdp-overlay-opacity">
                 <span>Overlay Opacity (%)</span>
@@ -40,10 +40,52 @@
             <input type="range" id="cdp-overlay-opacity" min="30" max="90" step="5" value="70" />
             <span id="cdp-overlay-opacity-value">70%</span>
 
+            <label class="checkbox_label" for="cdp-use-theme-font-color">
+                <input type="checkbox" id="cdp-use-theme-font-color" checked />
+                <span>Use Theme Color for Font</span>
+            </label>
+
+            <label for="cdp-font-color">
+                <span>Font Color</span>
+            </label>
+            <input type="color" id="cdp-font-color" value="#ffffff" />
+
+            <label class="checkbox_label" for="cdp-use-theme-background-color">
+                <input type="checkbox" id="cdp-use-theme-background-color" checked />
+                <span>Use Theme Color for Background</span>
+            </label>
+
+            <label for="cdp-background-color">
+                <span>Background Color</span>
+            </label>
+            <input type="color" id="cdp-background-color" value="#1a1a1a" />
+
+            <label for="cdp-background-opacity">
+                <span>Background Opacity (%)</span>
+            </label>
+            <input type="range" id="cdp-background-opacity" min="0" max="100" step="5" value="95" />
+            <span id="cdp-background-opacity-value">95%</span>
+
+            <label for="cdp-blur-strength">
+                <span>Blur Strength (px)</span>
+            </label>
+            <input type="range" id="cdp-blur-strength" min="0" max="30" step="1" value="10" />
+            <span id="cdp-blur-strength-value">10px</span>
+
+            <label class="checkbox_label" for="cdp-use-theme-primary-color">
+                <input type="checkbox" id="cdp-use-theme-primary-color" checked />
+                <span>Use Theme Color for Primary Button</span>
+            </label>
+
             <label for="cdp-primary-button-color">
                 <span>Primary Button Color</span>
             </label>
             <input type="color" id="cdp-primary-button-color" value="#4a9eff" />
+
+            <label class="checkbox_label" for="cdp-use-theme-secondary-color">
+                <input type="checkbox" id="cdp-use-theme-secondary-color" checked />
+                <span>Use Theme Color for Secondary Button</span>
+            </label>
 
             <label for="cdp-secondary-button-color">
                 <span>Secondary Button Color</span>

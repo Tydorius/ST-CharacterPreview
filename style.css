@@ -28,13 +28,16 @@
 
 /* Modal Container */
 .cdp-modal {
-    background-color: var(--SmartThemeBodyColor, #ffffff);
-    color: var(--SmartThemeEmColor, #000000);
+    background-color: var(--cdp-background-color, var(--SmartThemeBlurTintColor, #1a1a1a));
+    color: var(--cdp-font-color, var(--SmartThemeEmColor, #ffffff));
+    opacity: var(--cdp-background-opacity, 0.95);
     width: var(--cdp-content-width, 50%);
     max-width: var(--cdp-modal-width, 80vw);
     max-height: var(--cdp-modal-height, 80vh);
     border-radius: var(--cdp-modal-border-radius, 12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(var(--cdp-blur-strength, 10px));
+    -webkit-backdrop-filter: blur(var(--cdp-blur-strength, 10px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -124,7 +127,7 @@
     font-size: 1.8rem;
     font-weight: bold;
     text-align: center;
-    color: var(--SmartThemeEmColor, #000000);
+    color: var(--cdp-font-color, var(--SmartThemeEmColor, #ffffff));
     flex: 1;
 }
 
@@ -146,7 +149,7 @@
     display: block;
     margin-bottom: 0.5rem;
     font-size: 1.1rem;
-    color: var(--SmartThemeEmColor, #000000);
+    color: var(--cdp-font-color, var(--SmartThemeEmColor, #ffffff));
 }
 
 .cdp-field p {
@@ -167,7 +170,7 @@
 .cdp-collapsible__summary {
     font-weight: bold;
     font-size: 1.1rem;
-    color: var(--SmartThemeEmColor, #000000);
+    color: var(--cdp-font-color, var(--SmartThemeEmColor, #ffffff));
     cursor: pointer;
     user-select: none;
     list-style: none;
@@ -224,7 +227,7 @@
 .cdp-markdown-content h6 {
     margin-top: 1em;
     margin-bottom: 0.5em;
-    color: var(--SmartThemeEmColor, #000000);
+    color: var(--cdp-font-color, var(--SmartThemeEmColor, #ffffff));
 }
 
 .cdp-markdown-content h1 { font-size: 1.8em; }
@@ -297,7 +300,7 @@
     justify-content: flex-start;
     gap: 0.5rem;
     padding: 0.75rem var(--cdp-modal-padding, 2rem);
-    background-color: var(--SmartThemeBodyColor, #ffffff);
+    background-color: var(--cdp-background-color, var(--SmartThemeBlurTintColor, #1a1a1a));
     border-top: 1px solid var(--SmartThemeBorderColor, rgba(0, 0, 0, 0.2));
     position: sticky;
     bottom: 0;
