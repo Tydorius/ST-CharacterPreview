@@ -9,6 +9,9 @@ const extensionFolder = 'third-party/ST-CharacterPreview';
 let currentModal = null;
 let escapeKeyHandler = null;
 
+// Markdown library reference
+let marked = null;
+
 // Extension settings with defaults
 let extensionSettings = {
     modalWidth: 80,
@@ -29,6 +32,62 @@ let extensionSettings = {
  */
 function log(message) {
     console.log(`[Character Details Popup] ${message}`);
+}
+
+/**
+ * Load the marked markdown library
+ */
+async function loadMarkedLibrary() {
+    if (marked) {
+        return marked;
+    }
+
+    try {
+        // Dynamically load marked.js from CDN
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+
+        // Access the global marked object
+        marked = window.marked;
+
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+        });
+
+        log('Marked library loaded successfully');
+        return marked;
+    } catch (error) {
+        console.error('[Character Details Popup] Failed to load marked library:', error);
+        return null;
+    }
+}
+
+/**
+ * Convert markdown to HTML safely
+ * @param {string} text - The markdown text to convert
+ * @returns {string} HTML string
+ */
+function renderMarkdown(text) {
+    if (!text) return '';
+
+    // If marked isn't loaded, return plain text
+    if (!marked) {
+        return text;
+    }
+
+    try {
+        return marked.parse(text);
+    } catch (error) {
+        console.error('[Character Details Popup] Markdown parsing error:', error);
+        return text;
+    }
 }
 
 /**
@@ -126,6 +185,9 @@ function createCharacterModal(characterData) {
     const creatorNotes = characterData?.creator_notes ?? '';
     const scenario = characterData?.scenario ?? '';
     const avatar = characterData?.avatar ?? '';
+    const firstMessage = characterData?.first_mes ?? '';
+    const personality = characterData?.personality ?? '';
+    const exampleMessages = characterData?.mes_example ?? '';
 
     // Create overlay
     const overlay = document.createElement('div');
@@ -172,13 +234,14 @@ function createCharacterModal(characterData) {
     const body = document.createElement('div');
     body.className = 'cdp-modal__body';
 
-    // Create description field
+    // Create description field with markdown support
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'cdp-field cdp-description';
     const descLabel = document.createElement('strong');
     descLabel.textContent = 'Description:';
-    const descContent = document.createElement('p');
-    descContent.textContent = description;
+    const descContent = document.createElement('div');
+    descContent.className = 'cdp-markdown-content';
+    descContent.innerHTML = renderMarkdown(description);
     descriptionDiv.appendChild(descLabel);
     descriptionDiv.appendChild(descContent);
     body.appendChild(descriptionDiv);
@@ -207,6 +270,55 @@ function createCharacterModal(characterData) {
         scenarioDiv.appendChild(scenarioLabel);
         scenarioDiv.appendChild(scenarioContent);
         body.appendChild(scenarioDiv);
+    }
+
+    // Add personality only if non-empty (collapsible)
+    if (personality && personality.trim()) {
+        const personalityDetails = document.createElement('details');
+        personalityDetails.className = 'cdp-collapsible';
+        const personalitySummary = document.createElement('summary');
+        personalitySummary.className = 'cdp-collapsible__summary';
+        personalitySummary.textContent = 'Personality';
+        const personalityContent = document.createElement('div');
+        personalityContent.className = 'cdp-collapsible__content';
+        const personalityText = document.createElement('p');
+        personalityText.textContent = personality.trim();
+        personalityContent.appendChild(personalityText);
+        personalityDetails.appendChild(personalitySummary);
+        personalityDetails.appendChild(personalityContent);
+        body.appendChild(personalityDetails);
+    }
+
+    // Add first message only if non-empty (collapsible, with markdown)
+    if (firstMessage && firstMessage.trim()) {
+        const firstMessageDetails = document.createElement('details');
+        firstMessageDetails.className = 'cdp-collapsible';
+        const firstMessageSummary = document.createElement('summary');
+        firstMessageSummary.className = 'cdp-collapsible__summary';
+        firstMessageSummary.textContent = 'First Message';
+        const firstMessageContent = document.createElement('div');
+        firstMessageContent.className = 'cdp-collapsible__content cdp-markdown-content';
+        firstMessageContent.innerHTML = renderMarkdown(firstMessage.trim());
+        firstMessageDetails.appendChild(firstMessageSummary);
+        firstMessageDetails.appendChild(firstMessageContent);
+        body.appendChild(firstMessageDetails);
+    }
+
+    // Add example messages only if non-empty (collapsible)
+    if (exampleMessages && exampleMessages.trim()) {
+        const exampleDetails = document.createElement('details');
+        exampleDetails.className = 'cdp-collapsible';
+        const exampleSummary = document.createElement('summary');
+        exampleSummary.className = 'cdp-collapsible__summary';
+        exampleSummary.textContent = 'Example Messages';
+        const exampleContent = document.createElement('div');
+        exampleContent.className = 'cdp-collapsible__content';
+        const exampleText = document.createElement('p');
+        exampleText.textContent = exampleMessages.trim();
+        exampleContent.appendChild(exampleText);
+        exampleDetails.appendChild(exampleSummary);
+        exampleDetails.appendChild(exampleContent);
+        body.appendChild(exampleDetails);
     }
 
     // Append body to content
@@ -292,6 +404,9 @@ function setupCharacterClickInterception() {
                     creator_notes: character.creator_notes,
                     scenario: character.scenario,
                     avatar: character.avatar,
+                    first_mes: character.first_mes,
+                    personality: character.personality,
+                    mes_example: character.mes_example,
                 };
 
                 log(`Character data loaded: ${characterData.name}`);
@@ -489,8 +604,11 @@ async function addExtensionSettings() {
 /**
  * Initialize the extension
  */
-function init() {
+async function init() {
     log('Initializing extension...');
+
+    // Load markdown library
+    await loadMarkedLibrary();
 
     // Listen for APP_READY event
     eventSource.on(event_types.APP_READY, () => {
