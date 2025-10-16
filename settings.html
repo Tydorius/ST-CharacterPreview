@@ -53,17 +53,23 @@
             <hr>
             <h3>Content</h3>
 
+            <label for="cdp-content-width">
+                <span>Content Width (%)</span>
+            </label>
+            <input type="range" id="cdp-content-width" min="30" max="90" step="5" value="50" />
+            <span id="cdp-content-width-value">50%</span>
+
             <label for="cdp-image-max-height">
                 <span>Image Max Height (px)</span>
             </label>
             <input type="range" id="cdp-image-max-height" min="200" max="600" step="50" value="400" />
             <span id="cdp-image-max-height-value">400px</span>
 
-            <label for="cdp-field-max-height">
-                <span>Text Field Max Height (px)</span>
+            <label for="cdp-responsive-breakpoint">
+                <span>Responsive Breakpoint (px)</span>
             </label>
-            <input type="range" id="cdp-field-max-height" min="100" max="400" step="50" value="200" />
-            <span id="cdp-field-max-height-value">200px</span>
+            <input type="range" id="cdp-responsive-breakpoint" min="400" max="900" step="50" value="700" />
+            <span id="cdp-responsive-breakpoint-value">700px</span>
 
             <hr>
             <div style="margin-top: 10px;">

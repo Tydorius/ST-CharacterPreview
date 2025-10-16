@@ -18,8 +18,9 @@ let extensionSettings = {
     overlayOpacity: 70,
     primaryButtonColor: '#4a9eff',
     secondaryButtonColor: '#999999',
+    contentWidth: 50,
     imageMaxHeight: 400,
-    fieldMaxHeight: 200,
+    responsiveBreakpoint: 700,
 };
 
 /**
@@ -134,6 +135,14 @@ function createCharacterModal(characterData) {
     const modal = document.createElement('div');
     modal.className = 'cdp-modal';
 
+    // Create scrollable content wrapper
+    const content = document.createElement('div');
+    content.className = 'cdp-modal__content';
+
+    // Create header section (image + name)
+    const header = document.createElement('div');
+    header.className = 'cdp-modal__header';
+
     // Create character image only if avatar is available
     if (avatar) {
         const img = document.createElement('img');
@@ -147,13 +156,21 @@ function createCharacterModal(characterData) {
             log(`Failed to load avatar: ${avatar}, using default`);
         };
 
-        modal.appendChild(img);
+        header.appendChild(img);
     }
 
     // Create character name heading
     const nameHeading = document.createElement('h2');
     nameHeading.className = 'cdp-modal__name';
     nameHeading.textContent = name;
+    header.appendChild(nameHeading);
+
+    // Append header to content
+    content.appendChild(header);
+
+    // Create body section (all description fields)
+    const body = document.createElement('div');
+    body.className = 'cdp-modal__body';
 
     // Create description field
     const descriptionDiv = document.createElement('div');
@@ -164,10 +181,7 @@ function createCharacterModal(characterData) {
     descContent.textContent = description;
     descriptionDiv.appendChild(descLabel);
     descriptionDiv.appendChild(descContent);
-
-    // Append basic elements
-    modal.appendChild(nameHeading);
-    modal.appendChild(descriptionDiv);
+    body.appendChild(descriptionDiv);
 
     // Add creator notes only if non-empty
     if (creatorNotes && creatorNotes.trim()) {
@@ -179,7 +193,7 @@ function createCharacterModal(characterData) {
         creatorContent.textContent = creatorNotes.trim();
         creatorNotesDiv.appendChild(creatorLabel);
         creatorNotesDiv.appendChild(creatorContent);
-        modal.appendChild(creatorNotesDiv);
+        body.appendChild(creatorNotesDiv);
     }
 
     // Add scenario only if non-empty
@@ -192,10 +206,16 @@ function createCharacterModal(characterData) {
         scenarioContent.textContent = scenario.trim();
         scenarioDiv.appendChild(scenarioLabel);
         scenarioDiv.appendChild(scenarioContent);
-        modal.appendChild(scenarioDiv);
+        body.appendChild(scenarioDiv);
     }
 
-    // Create footer with buttons
+    // Append body to content
+    content.appendChild(body);
+
+    // Append content to modal
+    modal.appendChild(content);
+
+    // Create footer with buttons (fixed at bottom)
     const footer = document.createElement('div');
     footer.className = 'cdp-modal__footer';
 
@@ -313,8 +333,9 @@ function applySettings() {
     root.style.setProperty('--cdp-overlay-opacity', `${extensionSettings.overlayOpacity / 100}`);
     root.style.setProperty('--cdp-primary-button-color', extensionSettings.primaryButtonColor);
     root.style.setProperty('--cdp-secondary-button-color', extensionSettings.secondaryButtonColor);
+    root.style.setProperty('--cdp-content-width', `${extensionSettings.contentWidth}%`);
     root.style.setProperty('--cdp-image-max-height', `${extensionSettings.imageMaxHeight}px`);
-    root.style.setProperty('--cdp-field-max-height', `${extensionSettings.fieldMaxHeight}px`);
+    root.style.setProperty('--cdp-responsive-breakpoint', `${extensionSettings.responsiveBreakpoint}px`);
 }
 
 /**
@@ -329,8 +350,9 @@ function resetSettings() {
         overlayOpacity: 70,
         primaryButtonColor: '#4a9eff',
         secondaryButtonColor: '#999999',
+        contentWidth: 50,
         imageMaxHeight: 400,
-        fieldMaxHeight: 200,
+        responsiveBreakpoint: 700,
     };
     saveSettings();
     applySettings();
@@ -360,11 +382,14 @@ function updateSettingsUI() {
     $('#cdp-primary-button-color').val(extensionSettings.primaryButtonColor);
     $('#cdp-secondary-button-color').val(extensionSettings.secondaryButtonColor);
 
+    $('#cdp-content-width').val(extensionSettings.contentWidth);
+    $('#cdp-content-width-value').text(`${extensionSettings.contentWidth}%`);
+
     $('#cdp-image-max-height').val(extensionSettings.imageMaxHeight);
     $('#cdp-image-max-height-value').text(`${extensionSettings.imageMaxHeight}px`);
 
-    $('#cdp-field-max-height').val(extensionSettings.fieldMaxHeight);
-    $('#cdp-field-max-height-value').text(`${extensionSettings.fieldMaxHeight}px`);
+    $('#cdp-responsive-breakpoint').val(extensionSettings.responsiveBreakpoint);
+    $('#cdp-responsive-breakpoint-value').text(`${extensionSettings.responsiveBreakpoint}px`);
 }
 
 /**
@@ -422,6 +447,13 @@ async function addExtensionSettings() {
         saveSettings();
     });
 
+    $('#cdp-content-width').on('input', function() {
+        extensionSettings.contentWidth = Number($(this).val());
+        $('#cdp-content-width-value').text(`${extensionSettings.contentWidth}%`);
+        applySettings();
+        saveSettings();
+    });
+
     $('#cdp-image-max-height').on('input', function() {
         extensionSettings.imageMaxHeight = Number($(this).val());
         $('#cdp-image-max-height-value').text(`${extensionSettings.imageMaxHeight}px`);
@@ -429,9 +461,9 @@ async function addExtensionSettings() {
         saveSettings();
     });
 
-    $('#cdp-field-max-height').on('input', function() {
-        extensionSettings.fieldMaxHeight = Number($(this).val());
-        $('#cdp-field-max-height-value').text(`${extensionSettings.fieldMaxHeight}px`);
+    $('#cdp-responsive-breakpoint').on('input', function() {
+        extensionSettings.responsiveBreakpoint = Number($(this).val());
+        $('#cdp-responsive-breakpoint-value').text(`${extensionSettings.responsiveBreakpoint}px`);
         applySettings();
         saveSettings();
     });

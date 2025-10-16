@@ -30,16 +30,16 @@
 .cdp-modal {
     background-color: var(--SmartThemeBodyColor, #ffffff);
     color: var(--SmartThemeEmColor, #000000);
-    padding: var(--cdp-modal-padding, 2rem);
-    border-radius: var(--cdp-modal-border-radius, 12px);
+    width: var(--cdp-content-width, 50%);
     max-width: var(--cdp-modal-width, 80vw);
     max-height: var(--cdp-modal-height, 80vh);
-    overflow-y: auto;
+    border-radius: var(--cdp-modal-border-radius, 12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    overflow: hidden;
     animation: cdp-slideIn 0.3s ease-out;
+    container-type: inline-size;
 }
 
 @keyframes cdp-slideIn {
@@ -53,6 +53,60 @@
     }
 }
 
+/* Scrollable Content Area */
+.cdp-modal__content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--cdp-modal-padding, 2rem);
+    padding-bottom: calc(var(--cdp-modal-padding, 2rem) + 60px);
+}
+
+/* Header Section (Image + Name) */
+.cdp-modal__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive layout for header - uses container queries for dynamic breakpoint */
+@container (min-width: 700px) {
+    .cdp-modal__header {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .cdp-modal__header .cdp-modal__image {
+        flex-shrink: 0;
+    }
+
+    .cdp-modal__header .cdp-modal__name {
+        text-align: left;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Fallback for browsers without container query support */
+@supports not (container-type: inline-size) {
+    @media (min-width: 700px) {
+        .cdp-modal__header {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .cdp-modal__header .cdp-modal__image {
+            flex-shrink: 0;
+        }
+
+        .cdp-modal__header .cdp-modal__name {
+            text-align: left;
+            margin-top: 0.5rem;
+        }
+    }
+}
+
 /* Character Image */
 .cdp-modal__image {
     max-width: 100%;
@@ -61,7 +115,6 @@
     height: auto;
     object-fit: contain;
     border-radius: 8px;
-    align-self: center;
 }
 
 /* Character Name */
@@ -72,16 +125,21 @@
     font-weight: bold;
     text-align: center;
     color: var(--SmartThemeEmColor, #000000);
+    flex: 1;
 }
 
-/* Field Container */
+/* Body Section (All description fields) */
+.cdp-modal__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Field Container - No max-height, expands to content */
 .cdp-field {
-    margin: 0.5rem 0;
     padding: 1rem;
     background-color: var(--black30a, rgba(0, 0, 0, 0.1));
     border-radius: 8px;
-    overflow-y: auto;
-    max-height: var(--cdp-field-max-height, 200px);
 }
 
 .cdp-field strong {
@@ -98,20 +156,25 @@
     word-wrap: break-word;
 }
 
-/* Modal Footer */
+/* Fixed Footer at Bottom */
 .cdp-modal__footer {
     display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem var(--cdp-modal-padding, 2rem);
+    background-color: var(--SmartThemeBodyColor, #ffffff);
     border-top: 1px solid var(--SmartThemeBorderColor, rgba(0, 0, 0, 0.2));
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
 }
 
-/* Buttons */
+/* Buttons - Reduced padding */
 .cdp-button {
-    padding: 0.75rem 2rem;
-    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     border: none;
     border-radius: 6px;
@@ -146,34 +209,35 @@
 }
 
 /* Scrollbar Styling */
-.cdp-modal::-webkit-scrollbar,
-.cdp-field::-webkit-scrollbar {
+.cdp-modal__content::-webkit-scrollbar {
     width: 8px;
 }
 
-.cdp-modal::-webkit-scrollbar-track,
-.cdp-field::-webkit-scrollbar-track {
+.cdp-modal__content::-webkit-scrollbar-track {
     background: var(--black30a, rgba(0, 0, 0, 0.1));
     border-radius: 4px;
 }
 
-.cdp-modal::-webkit-scrollbar-thumb,
-.cdp-field::-webkit-scrollbar-thumb {
+.cdp-modal__content::-webkit-scrollbar-thumb {
     background: var(--grey70, #999999);
     border-radius: 4px;
 }
 
-.cdp-modal::-webkit-scrollbar-thumb:hover,
-.cdp-field::-webkit-scrollbar-thumb:hover {
+.cdp-modal__content::-webkit-scrollbar-thumb:hover {
     background: var(--grey50, #777777);
 }
 
-/* Responsive Design */
+/* Responsive Design for Small Screens */
 @media (max-width: 768px) {
     .cdp-modal {
+        width: 95vw;
         max-width: 95vw;
         max-height: 90vh;
+    }
+
+    .cdp-modal__content {
         padding: 1.5rem;
+        padding-bottom: calc(1.5rem + 60px);
     }
 
     .cdp-modal__name {
@@ -181,10 +245,13 @@
     }
 
     .cdp-modal__footer {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 0.75rem 1.5rem;
     }
 
     .cdp-button {
-        width: 100%;
+        flex: 1;
+        min-width: 120px;
     }
 }
