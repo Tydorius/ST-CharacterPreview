@@ -152,17 +152,22 @@ function openModal(modalElement, characterId) {
 
     const closeButton = modalElement.querySelector('#cdp-close');
     if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
+        closeButton.addEventListener('click', function(event) {
+            event.stopPropagation();
+            closeModal();
+        });
     }
 
     modalElement.addEventListener('click', function(event) {
         if (event.target === modalElement) {
+            event.stopPropagation();
             closeModal();
         }
     });
 
     escapeKeyHandler = function(event) {
         if (event.key === 'Escape') {
+            event.stopPropagation();
             closeModal();
         }
     };
@@ -170,7 +175,8 @@ function openModal(modalElement, characterId) {
 
     const startChatButton = modalElement.querySelector('#cdp-start-chat');
     if (startChatButton) {
-        startChatButton.addEventListener('click', function() {
+        startChatButton.addEventListener('click', function(event) {
+            event.stopPropagation();
             handleStartChat(characterId);
         });
     }
@@ -387,12 +393,17 @@ function setupCharacterClickInterception() {
         const characterCard = event.target.closest('.character_select');
 
         if (characterCard) {
-            event.preventDefault();
-            event.stopPropagation();
-
             const characterId = characterCard.getAttribute('data-chid');
 
             if (characterId) {
+                if (event.shiftKey) {
+                    log(`SHIFT+click - bypassing popup for character ${characterId}`);
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
                 log(`Character clicked - ID: ${characterId}`);
 
                 const character = characters[Number(characterId)];

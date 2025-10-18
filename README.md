@@ -42,6 +42,8 @@ Click any character card to open the preview box. The Description section is exp
 
 Click Start Chat to begin conversation or Close to dismiss the box.
 
+Hold SHIFT while clicking a character card to bypass the preview popup and start a chat immediately.
+
 ## Configuration
 
 Access settings via Extensions panel. Available options:
