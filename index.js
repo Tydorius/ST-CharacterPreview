@@ -5,19 +5,20 @@ import { power_user } from '../../../power-user.js';
 const extensionName = 'third-party/ST-CharacterPreview';
 const extensionFolder = 'third-party/ST-CharacterPreview';
 
-// Store reference to currently open modal and event handler
-let currentModal = null;
+// Store reference to currently open box and event handler
+let currentBox = null;
 let escapeKeyHandler = null;
+let drawerWasOpen = false;
 
 // Markdown library reference
 let marked = null;
 
 // Extension settings with defaults
 let extensionSettings = {
-    modalWidth: 80,
-    modalHeight: 80,
-    modalPadding: 2,
-    modalBorderRadius: 12,
+    boxWidth: 80,
+    boxHeight: 80,
+    boxPadding: 2,
+    boxBorderRadius: 12,
     overlayOpacity: 70,
     primaryButtonColor: '#4a9eff',
     secondaryButtonColor: '#999999',
@@ -123,12 +124,12 @@ async function fetchCharacterData(avatarUrl) {
 }
 
 /**
- * Close and cleanup the modal
+ * Close and cleanup the box
  */
-function closeModal() {
-    if (currentModal) {
-        currentModal.remove();
-        currentModal = null;
+function closeBox() {
+    if (currentBox) {
+        currentBox.remove();
+        currentBox = null;
     }
 
     if (escapeKeyHandler) {
@@ -136,44 +137,62 @@ function closeModal() {
         escapeKeyHandler = null;
     }
 
-    log('Modal closed');
+    if (drawerWasOpen) {
+        const drawer = document.getElementById('right-nav-panel');
+        if (drawer && drawer.classList.contains('closedDrawer')) {
+            const drawerIcon = document.querySelector('#rightNavDrawerIcon');
+            drawer.classList.remove('closedDrawer');
+            drawer.classList.add('openDrawer');
+            if (drawerIcon) {
+                drawerIcon.classList.remove('closedIcon');
+                drawerIcon.classList.add('openIcon');
+            }
+            log('Restored character panel state');
+        }
+        drawerWasOpen = false;
+    }
+
+    log('Box closed');
 }
 
 /**
- * Open the character modal
- * @param {HTMLElement} modalElement - The modal element to display
+ * Open the character box
+ * @param {HTMLElement} boxElement - The box element to display
  * @param {number} characterId - The character ID for Start Chat functionality
  */
-function openModal(modalElement, characterId) {
-    closeModal();
+function openBox(boxElement, characterId) {
+    closeBox();
 
-    currentModal = modalElement;
-    document.body.appendChild(modalElement);
+    const drawer = document.getElementById('right-nav-panel');
+    drawerWasOpen = drawer && drawer.classList.contains('openDrawer');
 
-    const closeButton = modalElement.querySelector('#cdp-close');
+    currentBox = boxElement;
+    document.body.appendChild(boxElement);
+
+    const closeButton = boxElement.querySelector('#cdp-close');
     if (closeButton) {
         closeButton.addEventListener('click', function(event) {
             event.stopPropagation();
-            closeModal();
+            closeBox();
         });
     }
 
-    modalElement.addEventListener('click', function(event) {
-        if (event.target === modalElement) {
+    boxElement.addEventListener('click', function(event) {
+        if (event.target === boxElement) {
             event.stopPropagation();
-            closeModal();
+            closeBox();
         }
     });
 
     escapeKeyHandler = function(event) {
         if (event.key === 'Escape') {
             event.stopPropagation();
-            closeModal();
+            closeBox();
         }
     };
     document.addEventListener('keydown', escapeKeyHandler);
 
-    const startChatButton = modalElement.querySelector('#cdp-start-chat');
+    const startChatButton = boxElement.querySelector('#cdp-start-chat');
     if (startChatButton) {
         startChatButton.addEventListener('click', function(event) {
             event.stopPropagation();
@@ -181,7 +200,7 @@ function openModal(modalElement, characterId) {
         });
     }
 
-    log('Modal opened');
+    log('Box opened');
 }
 
 /**
@@ -191,7 +210,7 @@ function openModal(modalElement, characterId) {
 async function handleStartChat(characterId) {
     log(`Starting chat with character ID: ${characterId}`);
 
-    closeModal();
+    closeBox();
 
     try {
         await selectCharacterById(String(characterId));
@@ -202,12 +221,12 @@ async function handleStartChat(characterId) {
 }
 
 /**
- * Create modal HTML structure for character details
+ * Create box HTML structure for character details
  * @param {Object} characterData - Character data object
  * @param {string} localAvatar - Local avatar filename (not the source URL)
- * @returns {HTMLElement} Modal overlay element
+ * @returns {HTMLElement} Box overlay element
  */
-function createCharacterModal(characterData, localAvatar) {
+function createCharacterBox(characterData, localAvatar) {
     const data = characterData?.data || characterData;
 
     const name = data?.name ?? 'Unnamed Character';
@@ -220,20 +239,20 @@ function createCharacterModal(characterData, localAvatar) {
     const exampleMessages = data?.mes_example ?? '';
 
     const overlay = document.createElement('div');
-    overlay.className = 'cdp-modal__overlay';
+    overlay.className = 'cdp-box__overlay';
 
-    const modal = document.createElement('div');
-    modal.className = 'cdp-modal';
+    const box = document.createElement('div');
+    box.className = 'cdp-box';
 
     const content = document.createElement('div');
-    content.className = 'cdp-modal__content';
+    content.className = 'cdp-box__content';
 
     const header = document.createElement('div');
-    header.className = 'cdp-modal__header';
+    header.className = 'cdp-box__header';
 
     if (avatar) {
         const img = document.createElement('img');
-        img.className = 'cdp-modal__image';
+        img.className = 'cdp-box__image';
         img.src = `/characters/${encodeURIComponent(avatar)}`;
         img.alt = name;
 
@@ -246,14 +265,14 @@ function createCharacterModal(characterData, localAvatar) {
     }
 
     const nameHeading = document.createElement('h2');
-    nameHeading.className = 'cdp-modal__name';
+    nameHeading.className = 'cdp-box__name';
     nameHeading.textContent = name;
     header.appendChild(nameHeading);
 
     content.appendChild(header);
 
     const body = document.createElement('div');
-    body.className = 'cdp-modal__body';
+    body.className = 'cdp-box__body';
 
     const descriptionDetails = document.createElement('details');
     descriptionDetails.className = 'cdp-collapsible';
@@ -347,10 +366,10 @@ function createCharacterModal(characterData, localAvatar) {
     }
 
     content.appendChild(body);
-    modal.appendChild(content);
+    box.appendChild(content);
 
     const footer = document.createElement('div');
-    footer.className = 'cdp-modal__footer';
+    footer.className = 'cdp-box__footer';
 
     const startChatButton = document.createElement('button');
     startChatButton.id = 'cdp-start-chat';
@@ -364,9 +383,9 @@ function createCharacterModal(characterData, localAvatar) {
 
     footer.appendChild(startChatButton);
     footer.appendChild(closeButton);
-    modal.appendChild(footer);
+    box.appendChild(footer);
 
-    overlay.appendChild(modal);
+    overlay.appendChild(box);
 
     return overlay;
 }
@@ -419,8 +438,8 @@ function setupCharacterClickInterception() {
 
                     log(`Character data loaded: ${fullCharacterData.name || character.name}`);
 
-                    const modal = createCharacterModal(fullCharacterData, character.avatar);
-                    openModal(modal, Number(characterId));
+                    const box = createCharacterBox(fullCharacterData, character.avatar);
+                    openBox(box, Number(characterId));
                 } catch (error) {
                     console.error('[Character Details Popup] Failed to load character:', error);
                     alert('Failed to load character details. Please try again.');
@@ -457,14 +476,14 @@ function saveSettings() {
 }
 
 /**
- * Apply current settings to the modal CSS
+ * Apply current settings to the box CSS
  */
 function applySettings() {
     const root = document.documentElement;
-    root.style.setProperty('--cdp-modal-width', `${extensionSettings.modalWidth}vw`);
-    root.style.setProperty('--cdp-modal-height', `${extensionSettings.modalHeight}vh`);
-    root.style.setProperty('--cdp-modal-padding', `${extensionSettings.modalPadding}rem`);
-    root.style.setProperty('--cdp-modal-border-radius', `${extensionSettings.modalBorderRadius}px`);
+    root.style.setProperty('--cdp-box-width', `${extensionSettings.boxWidth}vw`);
+    root.style.setProperty('--cdp-box-height', `${extensionSettings.boxHeight}vh`);
+    root.style.setProperty('--cdp-box-padding', `${extensionSettings.boxPadding}rem`);
+    root.style.setProperty('--cdp-box-border-radius', `${extensionSettings.boxBorderRadius}px`);
     root.style.setProperty('--cdp-overlay-opacity', `${extensionSettings.overlayOpacity / 100}`);
 
     const primaryColor = extensionSettings.useThemePrimaryColor
@@ -496,10 +515,10 @@ function applySettings() {
  */
 function resetSettings() {
     extensionSettings = {
-        modalWidth: 80,
-        modalHeight: 80,
-        modalPadding: 2,
-        modalBorderRadius: 12,
+        boxWidth: 80,
+        boxHeight: 80,
+        boxPadding: 2,
+        boxBorderRadius: 12,
         overlayOpacity: 70,
         primaryButtonColor: '#4a9eff',
         secondaryButtonColor: '#999999',
@@ -525,17 +544,17 @@ function resetSettings() {
  * Update the settings UI to reflect current values
  */
 function updateSettingsUI() {
-    $('#cdp-modal-width').val(extensionSettings.modalWidth);
-    $('#cdp-modal-width-value').text(`${extensionSettings.modalWidth}%`);
+    $('#cdp-box-width').val(extensionSettings.boxWidth);
+    $('#cdp-box-width-value').text(`${extensionSettings.boxWidth}%`);
 
-    $('#cdp-modal-height').val(extensionSettings.modalHeight);
-    $('#cdp-modal-height-value').text(`${extensionSettings.modalHeight}%`);
+    $('#cdp-box-height').val(extensionSettings.boxHeight);
+    $('#cdp-box-height-value').text(`${extensionSettings.boxHeight}%`);
 
-    $('#cdp-modal-padding').val(extensionSettings.modalPadding);
-    $('#cdp-modal-padding-value').text(`${extensionSettings.modalPadding}rem`);
+    $('#cdp-box-padding').val(extensionSettings.boxPadding);
+    $('#cdp-box-padding-value').text(`${extensionSettings.boxPadding}rem`);
 
-    $('#cdp-modal-border-radius').val(extensionSettings.modalBorderRadius);
-    $('#cdp-modal-border-radius-value').text(`${extensionSettings.modalBorderRadius}px`);
+    $('#cdp-box-border-radius').val(extensionSettings.boxBorderRadius);
+    $('#cdp-box-border-radius-value').text(`${extensionSettings.boxBorderRadius}px`);
 
     $('#cdp-overlay-opacity').val(extensionSettings.overlayOpacity);
     $('#cdp-overlay-opacity-value').text(`${extensionSettings.overlayOpacity}%`);
@@ -579,30 +598,30 @@ async function addExtensionSettings() {
     const settingsHtml = await renderExtensionTemplateAsync(extensionFolder, 'settings');
     $('#extensions_settings2').append(settingsHtml);
 
-    $('#cdp-modal-width').on('input', function() {
-        extensionSettings.modalWidth = Number($(this).val());
-        $('#cdp-modal-width-value').text(`${extensionSettings.modalWidth}%`);
+    $('#cdp-box-width').on('input', function() {
+        extensionSettings.boxWidth = Number($(this).val());
+        $('#cdp-box-width-value').text(`${extensionSettings.boxWidth}%`);
         applySettings();
         saveSettings();
     });
 
-    $('#cdp-modal-height').on('input', function() {
-        extensionSettings.modalHeight = Number($(this).val());
-        $('#cdp-modal-height-value').text(`${extensionSettings.modalHeight}%`);
+    $('#cdp-box-height').on('input', function() {
+        extensionSettings.boxHeight = Number($(this).val());
+        $('#cdp-box-height-value').text(`${extensionSettings.boxHeight}%`);
         applySettings();
         saveSettings();
     });
 
-    $('#cdp-modal-padding').on('input', function() {
-        extensionSettings.modalPadding = Number($(this).val());
-        $('#cdp-modal-padding-value').text(`${extensionSettings.modalPadding}rem`);
+    $('#cdp-box-padding').on('input', function() {
+        extensionSettings.boxPadding = Number($(this).val());
+        $('#cdp-box-padding-value').text(`${extensionSettings.boxPadding}rem`);
         applySettings();
         saveSettings();
     });
 
-    $('#cdp-modal-border-radius').on('input', function() {
-        extensionSettings.modalBorderRadius = Number($(this).val());
-        $('#cdp-modal-border-radius-value').text(`${extensionSettings.modalBorderRadius}px`);
+    $('#cdp-box-border-radius').on('input', function() {
+        extensionSettings.boxBorderRadius = Number($(this).val());
+        $('#cdp-box-border-radius-value').text(`${extensionSettings.boxBorderRadius}px`);
         applySettings();
         saveSettings();
     });

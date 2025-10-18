@@ -12,15 +12,15 @@ Please consider [supporting me](https://ko-fi.com/tydorius) if you like what I'm
 
 ## Features
 
-- Popup box displays character details before starting a chat
-- Collapsible sections for spoiler-sensitive content (first message, scenario, etc.)
-- Markdown rendering support for description and first message fields
-- Full character data display: name, avatar, description, first message, scenario, personality, creator notes, example messages
+- Character details displayed in popup before starting chat
+- Collapsible sections for spoiler-sensitive content
+- Markdown rendering for description and first message fields
+- Full character data: name, avatar, description, first message, scenario, personality, creator notes, example messages
 - Theme integration with customizable colors and blur effects
 - Bulk edit mode compatibility
 - Lazy loading support for large character libraries
-- Keyboard shortcuts (Escape to close)
-- Click outside box or use Close button to dismiss
+- Character panel state preservation when closing popup
+- Keyboard shortcuts: Escape to close, SHIFT+click to bypass popup
 
 ## Installation
 
@@ -38,18 +38,20 @@ Please consider [supporting me](https://ko-fi.com/tydorius) if you like what I'm
 
 ## Usage
 
-Click any character card to open the preview box. The Description section is expanded by default. Other sections (First Message, Scenario, Personality, Creator Notes, Example Messages) are collapsed to prevent spoilers.
+Click any character card to open the preview popup. Description section expands by default. Other sections (First Message, Scenario, Personality, Creator Notes, Example Messages) remain collapsed.
 
-Click Start Chat to begin conversation or Close to dismiss the box.
-
-Hold SHIFT while clicking a character card to bypass the preview popup and start a chat immediately.
+**Actions:**
+- Click Start Chat to begin conversation
+- Click Close, press Escape, or click outside popup to dismiss
+- Character panel remains open after closing popup
+- Hold SHIFT while clicking character card to bypass popup and start chat directly
 
 ## Configuration
 
 Access settings via Extensions panel. Available options:
 
 ### Display Settings
-- box width and height
+- Box width and height
 - Content width
 - Padding and border radius
 - Image maximum height
@@ -62,10 +64,6 @@ Access settings via Extensions panel. Available options:
 - Background opacity
 - Blur strength
 - Primary and secondary button colors (theme or custom)
-
-### Content
-- Configurable image size
-- Responsive layout breakpoint
 
 ## Compatibility
 
