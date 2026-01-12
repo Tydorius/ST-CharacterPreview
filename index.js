@@ -33,6 +33,7 @@ let extensionSettings = {
     blurStrength: 10,
     useThemeFontColor: true,
     useThemeBackgroundColor: true,
+    useAccordionFirstMessage: false,
 };
 
 /**
@@ -95,6 +96,175 @@ function renderMarkdown(text) {
     } catch (error) {
         console.error('[Character Details Popup] Markdown parsing error:', error);
         return text;
+    }
+}
+
+/**
+ * Build all first messages array from character data
+ * @param {Object} data - Character data object
+ * @returns {string[]} Array of all first messages
+ */
+function getAllFirstMessages(data) {
+    const messages = [];
+    const firstMes = data?.first_mes?.trim() || '';
+    const alternates = data?.alternate_greetings || [];
+
+    if (firstMes) {
+        messages.push(firstMes);
+    }
+
+    for (const alt of alternates) {
+        if (alt && alt.trim()) {
+            messages.push(alt.trim());
+        }
+    }
+
+    log(`Found ${messages.length} first message(s)`);
+    return messages;
+}
+
+/**
+ * Create first message section with swipe navigation
+ * @param {string[]} messages - Array of first messages
+ * @returns {HTMLElement} Details element with swipe navigation
+ */
+function createSwipeFirstMessageSection(messages) {
+    const details = document.createElement('details');
+    details.className = 'cdp-collapsible';
+
+    const summary = document.createElement('summary');
+    summary.className = 'cdp-collapsible__summary cdp-greeting-summary';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'cdp-greeting-title';
+
+    if (messages.length > 1) {
+        titleSpan.textContent = `First Message (1/${messages.length})`;
+
+        const nav = document.createElement('div');
+        nav.className = 'cdp-greeting-nav';
+
+        const leftArrow = document.createElement('button');
+        leftArrow.className = 'cdp-greeting-nav__arrow cdp-greeting-nav__arrow--disabled';
+        leftArrow.innerHTML = '&#9664;';
+        leftArrow.type = 'button';
+        leftArrow.setAttribute('aria-label', 'Previous message');
+
+        const rightArrow = document.createElement('button');
+        rightArrow.className = 'cdp-greeting-nav__arrow';
+        rightArrow.innerHTML = '&#9654;';
+        rightArrow.type = 'button';
+        rightArrow.setAttribute('aria-label', 'Next message');
+
+        nav.appendChild(leftArrow);
+        nav.appendChild(rightArrow);
+        summary.appendChild(titleSpan);
+        summary.appendChild(nav);
+
+        let currentIndex = 0;
+
+        const content = document.createElement('div');
+        content.className = 'cdp-collapsible__content cdp-markdown-content';
+        content.innerHTML = renderMarkdown(messages[0]);
+
+        const updateDisplay = () => {
+            content.innerHTML = renderMarkdown(messages[currentIndex]);
+            titleSpan.textContent = `First Message (${currentIndex + 1}/${messages.length})`;
+
+            leftArrow.classList.toggle('cdp-greeting-nav__arrow--disabled', currentIndex === 0);
+            rightArrow.classList.toggle('cdp-greeting-nav__arrow--disabled', currentIndex === messages.length - 1);
+            log(`Showing first message ${currentIndex + 1}/${messages.length}`);
+        };
+
+        leftArrow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateDisplay();
+            }
+        });
+
+        rightArrow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentIndex < messages.length - 1) {
+                currentIndex++;
+                updateDisplay();
+            }
+        });
+
+        details.appendChild(summary);
+        details.appendChild(content);
+    } else {
+        titleSpan.textContent = 'First Message';
+        summary.appendChild(titleSpan);
+
+        const content = document.createElement('div');
+        content.className = 'cdp-collapsible__content cdp-markdown-content';
+        content.innerHTML = renderMarkdown(messages[0]);
+
+        details.appendChild(summary);
+        details.appendChild(content);
+    }
+
+    return details;
+}
+
+/**
+ * Create first message section with accordion style
+ * @param {string[]} messages - Array of first messages
+ * @returns {DocumentFragment} Fragment with multiple details elements
+ */
+function createAccordionFirstMessageSection(messages) {
+    const fragment = document.createDocumentFragment();
+
+    messages.forEach((message, index) => {
+        const details = document.createElement('details');
+        details.className = 'cdp-collapsible';
+        if (index === 0) {
+            details.open = true;
+        }
+
+        const summary = document.createElement('summary');
+        summary.className = 'cdp-collapsible__summary';
+
+        if (messages.length > 1) {
+            summary.textContent = `First Message (${index + 1}/${messages.length})`;
+        } else {
+            summary.textContent = 'First Message';
+        }
+
+        const content = document.createElement('div');
+        content.className = 'cdp-collapsible__content cdp-markdown-content';
+        content.innerHTML = renderMarkdown(message);
+
+        details.appendChild(summary);
+        details.appendChild(content);
+        fragment.appendChild(details);
+    });
+
+    log(`Created accordion with ${messages.length} first message(s)`);
+    return fragment;
+}
+
+/**
+ * Create the first message section based on settings
+ * @param {Object} data - Character data
+ * @returns {HTMLElement|DocumentFragment|null} First message section or null if no messages
+ */
+function createFirstMessageSection(data) {
+    const messages = getAllFirstMessages(data);
+
+    if (messages.length === 0) {
+        log('No first messages found');
+        return null;
+    }
+
+    if (extensionSettings.useAccordionFirstMessage) {
+        log('Using accordion display mode');
+        return createAccordionFirstMessageSection(messages);
+    } else {
+        log('Using swipe display mode');
+        return createSwipeFirstMessageSection(messages);
     }
 }
 
@@ -234,7 +404,6 @@ function createCharacterBox(characterData, localAvatar) {
     const creatorNotes = data?.creator_notes ?? '';
     const scenario = data?.scenario ?? '';
     const avatar = localAvatar ?? data?.avatar ?? '';
-    const firstMessage = data?.first_mes ?? '';
     const personality = data?.personality ?? '';
     const exampleMessages = data?.mes_example ?? '';
 
@@ -287,18 +456,9 @@ function createCharacterBox(characterData, localAvatar) {
     descriptionDetails.appendChild(descContent);
     body.appendChild(descriptionDetails);
 
-    if (firstMessage && firstMessage.trim()) {
-        const firstMessageDetails = document.createElement('details');
-        firstMessageDetails.className = 'cdp-collapsible';
-        const firstMessageSummary = document.createElement('summary');
-        firstMessageSummary.className = 'cdp-collapsible__summary';
-        firstMessageSummary.textContent = 'First Message';
-        const firstMessageContent = document.createElement('div');
-        firstMessageContent.className = 'cdp-collapsible__content cdp-markdown-content';
-        firstMessageContent.innerHTML = renderMarkdown(firstMessage.trim());
-        firstMessageDetails.appendChild(firstMessageSummary);
-        firstMessageDetails.appendChild(firstMessageContent);
-        body.appendChild(firstMessageDetails);
+    const firstMessageSection = createFirstMessageSection(data);
+    if (firstMessageSection) {
+        body.appendChild(firstMessageSection);
     }
 
     if (scenario && scenario.trim()) {
@@ -533,6 +693,7 @@ function resetSettings() {
         blurStrength: 10,
         useThemeFontColor: true,
         useThemeBackgroundColor: true,
+        useAccordionFirstMessage: false,
     };
     saveSettings();
     applySettings();
@@ -589,6 +750,8 @@ function updateSettingsUI() {
 
     $('#cdp-responsive-breakpoint').val(extensionSettings.responsiveBreakpoint);
     $('#cdp-responsive-breakpoint-value').text(`${extensionSettings.responsiveBreakpoint}px`);
+
+    $('#cdp-accordion-first-message').prop('checked', extensionSettings.useAccordionFirstMessage);
 }
 
 /**
@@ -718,6 +881,12 @@ async function addExtensionSettings() {
         $('#cdp-responsive-breakpoint-value').text(`${extensionSettings.responsiveBreakpoint}px`);
         applySettings();
         saveSettings();
+    });
+
+    $('#cdp-accordion-first-message').on('change', function() {
+        extensionSettings.useAccordionFirstMessage = $(this).prop('checked');
+        saveSettings();
+        log(`First message display mode: ${extensionSettings.useAccordionFirstMessage ? 'accordion' : 'swipe'}`);
     });
 
     $('#cdp-reset-settings').on('click', function() {

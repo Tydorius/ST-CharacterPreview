@@ -213,6 +213,48 @@
     word-wrap: break-word;
 }
 
+/* First Message Navigation (Swipe Mode) */
+.cdp-greeting-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cdp-greeting-title {
+    flex: 1;
+}
+
+.cdp-greeting-nav {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: 1rem;
+}
+
+.cdp-greeting-nav__arrow {
+    background: var(--cdp-secondary-button-color, #999999);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.cdp-greeting-nav__arrow:hover:not(.cdp-greeting-nav__arrow--disabled) {
+    background: var(--cdp-primary-button-color, #4a9eff);
+    transform: scale(1.1);
+}
+
+.cdp-greeting-nav__arrow--disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 /* Markdown Content Styling */
 .cdp-markdown-content {
     line-height: 1.6;
