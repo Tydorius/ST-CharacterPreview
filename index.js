@@ -13,6 +13,16 @@ let drawerWasOpen = false;
 // Markdown library reference
 let marked = null;
 
+// Default tab configuration
+const defaultTabConfig = {
+    description:     { order: 0, visible: true, expanded: true },
+    firstMessage:    { order: 1, visible: true, expanded: false },
+    scenario:        { order: 2, visible: true, expanded: false },
+    personality:     { order: 3, visible: true, expanded: false },
+    creatorNotes:    { order: 4, visible: true, expanded: false },
+    exampleMessages: { order: 5, visible: true, expanded: false },
+};
+
 // Extension settings with defaults
 let extensionSettings = {
     boxWidth: 80,
@@ -34,6 +44,7 @@ let extensionSettings = {
     useThemeFontColor: true,
     useThemeBackgroundColor: true,
     useAccordionFirstMessage: false,
+    tabConfig: JSON.parse(JSON.stringify(defaultTabConfig)),
 };
 
 /**
@@ -126,11 +137,13 @@ function getAllFirstMessages(data) {
 /**
  * Create first message section with swipe navigation
  * @param {string[]} messages - Array of first messages
+ * @param {boolean} expanded - Whether section is open by default
  * @returns {HTMLElement} Details element with swipe navigation
  */
-function createSwipeFirstMessageSection(messages) {
+function createSwipeFirstMessageSection(messages, expanded) {
     const details = document.createElement('details');
     details.className = 'cdp-collapsible';
+    details.open = expanded;
 
     const summary = document.createElement('summary');
     summary.className = 'cdp-collapsible__summary cdp-greeting-summary';
@@ -212,15 +225,16 @@ function createSwipeFirstMessageSection(messages) {
 /**
  * Create first message section with accordion style
  * @param {string[]} messages - Array of first messages
+ * @param {boolean} expanded - Whether first section is open by default
  * @returns {DocumentFragment} Fragment with multiple details elements
  */
-function createAccordionFirstMessageSection(messages) {
+function createAccordionFirstMessageSection(messages, expanded) {
     const fragment = document.createDocumentFragment();
 
     messages.forEach((message, index) => {
         const details = document.createElement('details');
         details.className = 'cdp-collapsible';
-        if (index === 0) {
+        if (index === 0 && expanded) {
             details.open = true;
         }
 
@@ -247,11 +261,46 @@ function createAccordionFirstMessageSection(messages) {
 }
 
 /**
+ * Create a generic collapsible section
+ * @param {string} label - Section header text
+ * @param {string} content - Section content
+ * @param {boolean} expanded - Whether section is open by default
+ * @param {boolean} useMarkdown - Whether to render content as markdown
+ * @returns {HTMLElement} Details element
+ */
+function createCollapsibleSection(label, content, expanded, useMarkdown = false) {
+    const details = document.createElement('details');
+    details.className = 'cdp-collapsible';
+    details.open = expanded;
+
+    const summary = document.createElement('summary');
+    summary.className = 'cdp-collapsible__summary';
+    summary.textContent = label;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'cdp-collapsible__content' + (useMarkdown ? ' cdp-markdown-content' : '');
+
+    if (useMarkdown) {
+        contentDiv.innerHTML = renderMarkdown(content);
+    } else {
+        const textP = document.createElement('p');
+        textP.textContent = content;
+        contentDiv.appendChild(textP);
+    }
+
+    details.appendChild(summary);
+    details.appendChild(contentDiv);
+
+    return details;
+}
+
+/**
  * Create the first message section based on settings
  * @param {Object} data - Character data
+ * @param {boolean} expanded - Whether section is open by default
  * @returns {HTMLElement|DocumentFragment|null} First message section or null if no messages
  */
-function createFirstMessageSection(data) {
+function createFirstMessageSection(data, expanded = false) {
     const messages = getAllFirstMessages(data);
 
     if (messages.length === 0) {
@@ -261,10 +310,10 @@ function createFirstMessageSection(data) {
 
     if (extensionSettings.useAccordionFirstMessage) {
         log('Using accordion display mode');
-        return createAccordionFirstMessageSection(messages);
+        return createAccordionFirstMessageSection(messages, expanded);
     } else {
         log('Using swipe display mode');
-        return createSwipeFirstMessageSection(messages);
+        return createSwipeFirstMessageSection(messages, expanded);
     }
 }
 
@@ -443,86 +492,68 @@ function createCharacterBox(characterData, localAvatar) {
     const body = document.createElement('div');
     body.className = 'cdp-box__body';
 
-    const descriptionDetails = document.createElement('details');
-    descriptionDetails.className = 'cdp-collapsible';
-    descriptionDetails.open = true;
-    const descriptionSummary = document.createElement('summary');
-    descriptionSummary.className = 'cdp-collapsible__summary';
-    descriptionSummary.textContent = 'Description';
-    const descContent = document.createElement('div');
-    descContent.className = 'cdp-collapsible__content cdp-markdown-content';
-    descContent.innerHTML = renderMarkdown(description);
-    descriptionDetails.appendChild(descriptionSummary);
-    descriptionDetails.appendChild(descContent);
-    body.appendChild(descriptionDetails);
+    // Tab definitions with content getters and display settings
+    const tabDefinitions = {
+        description: {
+            label: 'Description',
+            getContent: () => description,
+            useMarkdown: true,
+        },
+        firstMessage: {
+            label: 'First Message',
+            isCustomBuilder: true,
+            builder: (expanded) => createFirstMessageSection(data, expanded),
+        },
+        scenario: {
+            label: 'Scenario',
+            getContent: () => scenario,
+            useMarkdown: false,
+        },
+        personality: {
+            label: 'Personality',
+            getContent: () => personality,
+            useMarkdown: false,
+        },
+        creatorNotes: {
+            label: 'Creator Notes',
+            getContent: () => creatorNotes,
+            useMarkdown: false,
+        },
+        exampleMessages: {
+            label: 'Example Messages',
+            getContent: () => exampleMessages,
+            useMarkdown: false,
+        },
+    };
 
-    const firstMessageSection = createFirstMessageSection(data);
-    if (firstMessageSection) {
-        body.appendChild(firstMessageSection);
-    }
+    // Build tabs dynamically based on tabConfig
+    const sortedTabs = Object.entries(extensionSettings.tabConfig)
+        .filter(([, cfg]) => cfg.visible)
+        .sort((a, b) => a[1].order - b[1].order);
 
-    if (scenario && scenario.trim()) {
-        const scenarioDetails = document.createElement('details');
-        scenarioDetails.className = 'cdp-collapsible';
-        const scenarioSummary = document.createElement('summary');
-        scenarioSummary.className = 'cdp-collapsible__summary';
-        scenarioSummary.textContent = 'Scenario';
-        const scenarioContent = document.createElement('div');
-        scenarioContent.className = 'cdp-collapsible__content';
-        const scenarioText = document.createElement('p');
-        scenarioText.textContent = scenario.trim();
-        scenarioContent.appendChild(scenarioText);
-        scenarioDetails.appendChild(scenarioSummary);
-        scenarioDetails.appendChild(scenarioContent);
-        body.appendChild(scenarioDetails);
-    }
+    log(`Building ${sortedTabs.length} visible tabs`);
 
-    if (personality && personality.trim()) {
-        const personalityDetails = document.createElement('details');
-        personalityDetails.className = 'cdp-collapsible';
-        const personalitySummary = document.createElement('summary');
-        personalitySummary.className = 'cdp-collapsible__summary';
-        personalitySummary.textContent = 'Personality';
-        const personalityContent = document.createElement('div');
-        personalityContent.className = 'cdp-collapsible__content';
-        const personalityText = document.createElement('p');
-        personalityText.textContent = personality.trim();
-        personalityContent.appendChild(personalityText);
-        personalityDetails.appendChild(personalitySummary);
-        personalityDetails.appendChild(personalityContent);
-        body.appendChild(personalityDetails);
-    }
+    for (const [tabId, cfg] of sortedTabs) {
+        const def = tabDefinitions[tabId];
+        if (!def) {
+            log(`Unknown tab: ${tabId}`);
+            continue;
+        }
 
-    if (creatorNotes && creatorNotes.trim()) {
-        const creatorNotesDetails = document.createElement('details');
-        creatorNotesDetails.className = 'cdp-collapsible';
-        const creatorNotesSummary = document.createElement('summary');
-        creatorNotesSummary.className = 'cdp-collapsible__summary';
-        creatorNotesSummary.textContent = 'Creator Notes';
-        const creatorNotesContent = document.createElement('div');
-        creatorNotesContent.className = 'cdp-collapsible__content';
-        const creatorNotesText = document.createElement('p');
-        creatorNotesText.textContent = creatorNotes.trim();
-        creatorNotesContent.appendChild(creatorNotesText);
-        creatorNotesDetails.appendChild(creatorNotesSummary);
-        creatorNotesDetails.appendChild(creatorNotesContent);
-        body.appendChild(creatorNotesDetails);
-    }
-
-    if (exampleMessages && exampleMessages.trim()) {
-        const exampleDetails = document.createElement('details');
-        exampleDetails.className = 'cdp-collapsible';
-        const exampleSummary = document.createElement('summary');
-        exampleSummary.className = 'cdp-collapsible__summary';
-        exampleSummary.textContent = 'Example Messages';
-        const exampleContent = document.createElement('div');
-        exampleContent.className = 'cdp-collapsible__content';
-        const exampleText = document.createElement('p');
-        exampleText.textContent = exampleMessages.trim();
-        exampleContent.appendChild(exampleText);
-        exampleDetails.appendChild(exampleSummary);
-        exampleDetails.appendChild(exampleContent);
-        body.appendChild(exampleDetails);
+        if (def.isCustomBuilder) {
+            const section = def.builder(cfg.expanded);
+            if (section) {
+                body.appendChild(section);
+                log(`Added tab: ${tabId} (custom builder, expanded: ${cfg.expanded})`);
+            }
+        } else {
+            const content = def.getContent();
+            if (content && content.trim()) {
+                const section = createCollapsibleSection(def.label, content.trim(), cfg.expanded, def.useMarkdown);
+                body.appendChild(section);
+                log(`Added tab: ${tabId} (expanded: ${cfg.expanded})`);
+            }
+        }
     }
 
     content.appendChild(body);
@@ -619,6 +650,21 @@ function setupCharacterClickInterception() {
 function loadSettings() {
     if (power_user.extensions && power_user.extensions[extensionName]) {
         Object.assign(extensionSettings, power_user.extensions[extensionName]);
+
+        // Ensure tabConfig exists and has all tabs with defaults
+        if (!extensionSettings.tabConfig) {
+            extensionSettings.tabConfig = JSON.parse(JSON.stringify(defaultTabConfig));
+            log('Initialized default tabConfig for existing user');
+        } else {
+            // Merge any missing tabs from defaults
+            for (const [tabId, defaults] of Object.entries(defaultTabConfig)) {
+                if (!extensionSettings.tabConfig[tabId]) {
+                    extensionSettings.tabConfig[tabId] = { ...defaults };
+                    log(`Added missing tab config: ${tabId}`);
+                }
+            }
+        }
+
         log('Settings loaded');
     }
 }
@@ -694,6 +740,7 @@ function resetSettings() {
         useThemeFontColor: true,
         useThemeBackgroundColor: true,
         useAccordionFirstMessage: false,
+        tabConfig: JSON.parse(JSON.stringify(defaultTabConfig)),
     };
     saveSettings();
     applySettings();
@@ -752,6 +799,11 @@ function updateSettingsUI() {
     $('#cdp-responsive-breakpoint-value').text(`${extensionSettings.responsiveBreakpoint}px`);
 
     $('#cdp-accordion-first-message').prop('checked', extensionSettings.useAccordionFirstMessage);
+
+    // Update tab expanded checkboxes
+    for (const [tabId, cfg] of Object.entries(extensionSettings.tabConfig)) {
+        $(`#cdp-tab-expanded-${tabId}`).prop('checked', cfg.expanded);
+    }
 }
 
 /**
@@ -887,6 +939,17 @@ async function addExtensionSettings() {
         extensionSettings.useAccordionFirstMessage = $(this).prop('checked');
         saveSettings();
         log(`First message display mode: ${extensionSettings.useAccordionFirstMessage ? 'accordion' : 'swipe'}`);
+    });
+
+    // Tab expanded checkbox handlers
+    $('[id^="cdp-tab-expanded-"]').on('change', function() {
+        const tabId = $(this).data('tab-id');
+        const isExpanded = $(this).prop('checked');
+        if (extensionSettings.tabConfig[tabId]) {
+            extensionSettings.tabConfig[tabId].expanded = isExpanded;
+            saveSettings();
+            log(`Tab '${tabId}' expanded: ${isExpanded}`);
+        }
     });
 
     $('#cdp-reset-settings').on('click', function() {
