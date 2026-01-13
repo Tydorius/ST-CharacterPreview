@@ -435,3 +435,77 @@
         min-width: 120px;
     }
 }
+
+/* Settings Panel - Tab Configuration */
+.cdp-tab-config {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.cdp-tab-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--black30a, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+}
+
+.cdp-tab-row--hidden {
+    opacity: 0.5;
+}
+
+.cdp-tab-row--hidden .cdp-tab-label {
+    text-decoration: line-through;
+}
+
+.cdp-tab-visibility {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 1rem;
+    color: inherit;
+    opacity: 0.8;
+}
+
+.cdp-tab-visibility:hover {
+    opacity: 1;
+}
+
+.cdp-tab-label {
+    flex: 1;
+    min-width: 120px;
+}
+
+.cdp-tab-expanded-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 90px;
+}
+
+.cdp-tab-expanded-label input {
+    margin: 0;
+}
+
+.cdp-tab-move {
+    background: none;
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    color: inherit;
+}
+
+.cdp-tab-move:hover:not(:disabled) {
+    background: var(--black30a, rgba(0, 0, 0, 0.2));
+}
+
+.cdp-tab-move:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}

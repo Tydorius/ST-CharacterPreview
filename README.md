@@ -16,7 +16,7 @@ Please consider [supporting me](https://ko-fi.com/tydorius) if you like what I'm
 - Collapsible sections for all character fields
 - Multiple first message support with swipe navigation (or accordion style)
 - Markdown rendering for description and first message fields
-- Configurable default expanded tabs
+- Configurable tab behavior: reorder, hide, or set default expanded state
 - Full character data: name, avatar, description, first message, scenario, personality, creator notes, example messages
 - Theme integration with customizable colors and blur effects
 - Bulk edit mode compatibility
@@ -71,7 +71,10 @@ Access settings via Extensions panel. Available options:
 
 ### Behavior
 - Accordion style first message(s): Shows all first messages as separate collapsible sections instead of swipe navigation
-- Default expanded tabs: Choose which sections are expanded when the popup opens
+- Tab Configuration: For each section, you can:
+  - Toggle visibility (eye icon) to hide sections you don't want to see
+  - Set expanded state to control which sections are open by default
+  - Reorder using the up/down arrows to arrange sections as you prefer
 
 ## Compatibility
 

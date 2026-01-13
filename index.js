@@ -748,6 +748,117 @@ function resetSettings() {
     log('Settings reset to defaults');
 }
 
+// Tab display labels
+const tabLabels = {
+    description: 'Description',
+    firstMessage: 'First Message',
+    scenario: 'Scenario',
+    personality: 'Personality',
+    creatorNotes: 'Creator Notes',
+    exampleMessages: 'Example Messages',
+};
+
+/**
+ * Swap tab order with adjacent tab
+ * @param {string} tabId - Tab to move
+ * @param {number} direction - -1 for up, 1 for down
+ */
+function swapTabOrder(tabId, direction) {
+    const sorted = Object.entries(extensionSettings.tabConfig)
+        .sort((a, b) => a[1].order - b[1].order);
+
+    const currentIndex = sorted.findIndex(([id]) => id === tabId);
+    const targetIndex = currentIndex + direction;
+
+    if (targetIndex < 0 || targetIndex >= sorted.length) {
+        return;
+    }
+
+    const currentTab = sorted[currentIndex][0];
+    const targetTab = sorted[targetIndex][0];
+
+    const tempOrder = extensionSettings.tabConfig[currentTab].order;
+    extensionSettings.tabConfig[currentTab].order = extensionSettings.tabConfig[targetTab].order;
+    extensionSettings.tabConfig[targetTab].order = tempOrder;
+
+    saveSettings();
+    renderTabConfigUI();
+    log(`Moved tab '${tabId}' ${direction === -1 ? 'up' : 'down'}`);
+}
+
+/**
+ * Render the tab configuration UI
+ */
+function renderTabConfigUI() {
+    const container = $('#cdp-tab-config');
+    if (!container.length) return;
+
+    container.empty();
+
+    const sorted = Object.entries(extensionSettings.tabConfig)
+        .sort((a, b) => a[1].order - b[1].order);
+
+    sorted.forEach(([tabId, cfg], index) => {
+        const isFirst = index === 0;
+        const isLast = index === sorted.length - 1;
+        const label = tabLabels[tabId] || tabId;
+
+        const row = $('<div>')
+            .addClass('cdp-tab-row')
+            .toggleClass('cdp-tab-row--hidden', !cfg.visible)
+            .attr('data-tab-id', tabId);
+
+        // Visibility toggle
+        const visBtn = $('<button>')
+            .addClass('cdp-tab-visibility')
+            .attr('type', 'button')
+            .attr('title', cfg.visible ? 'Hide tab' : 'Show tab')
+            .html(`<i class="fa-solid ${cfg.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>`)
+            .on('click', function() {
+                extensionSettings.tabConfig[tabId].visible = !extensionSettings.tabConfig[tabId].visible;
+                saveSettings();
+                renderTabConfigUI();
+                log(`Tab '${tabId}' visible: ${extensionSettings.tabConfig[tabId].visible}`);
+            });
+
+        // Label
+        const labelSpan = $('<span>').addClass('cdp-tab-label').text(label);
+
+        // Expanded checkbox
+        const expandedLabel = $('<label>').addClass('cdp-tab-expanded-label');
+        const expandedCheck = $('<input>')
+            .attr('type', 'checkbox')
+            .prop('checked', cfg.expanded)
+            .prop('disabled', !cfg.visible)
+            .on('change', function() {
+                extensionSettings.tabConfig[tabId].expanded = $(this).prop('checked');
+                saveSettings();
+                log(`Tab '${tabId}' expanded: ${extensionSettings.tabConfig[tabId].expanded}`);
+            });
+        expandedLabel.append(expandedCheck).append($('<span>').text('expanded'));
+
+        // Move buttons
+        const upBtn = $('<button>')
+            .addClass('cdp-tab-move')
+            .attr('type', 'button')
+            .attr('title', 'Move up')
+            .prop('disabled', isFirst)
+            .text('↑')
+            .on('click', () => swapTabOrder(tabId, -1));
+
+        const downBtn = $('<button>')
+            .addClass('cdp-tab-move')
+            .attr('type', 'button')
+            .attr('title', 'Move down')
+            .prop('disabled', isLast)
+            .text('↓')
+            .on('click', () => swapTabOrder(tabId, 1));
+
+        row.append(visBtn, labelSpan, expandedLabel, upBtn, downBtn);
+        container.append(row);
+    });
+}
+
 /**
  * Update the settings UI to reflect current values
  */
@@ -800,10 +911,7 @@ function updateSettingsUI() {
 
     $('#cdp-accordion-first-message').prop('checked', extensionSettings.useAccordionFirstMessage);
 
-    // Update tab expanded checkboxes
-    for (const [tabId, cfg] of Object.entries(extensionSettings.tabConfig)) {
-        $(`#cdp-tab-expanded-${tabId}`).prop('checked', cfg.expanded);
-    }
+    renderTabConfigUI();
 }
 
 /**
@@ -939,17 +1047,6 @@ async function addExtensionSettings() {
         extensionSettings.useAccordionFirstMessage = $(this).prop('checked');
         saveSettings();
         log(`First message display mode: ${extensionSettings.useAccordionFirstMessage ? 'accordion' : 'swipe'}`);
-    });
-
-    // Tab expanded checkbox handlers
-    $('[id^="cdp-tab-expanded-"]').on('change', function() {
-        const tabId = $(this).data('tab-id');
-        const isExpanded = $(this).prop('checked');
-        if (extensionSettings.tabConfig[tabId]) {
-            extensionSettings.tabConfig[tabId].expanded = isExpanded;
-            saveSettings();
-            log(`Tab '${tabId}' expanded: ${isExpanded}`);
-        }
     });
 
     $('#cdp-reset-settings').on('click', function() {
