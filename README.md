@@ -1,6 +1,6 @@
 # Character Details Popup
 
-SillyTavern extension that displays character information in a popup box when clicking character cards.
+SillyTavern extension that displays character information in a popup when clicking character cards.
 
 ## Author's Note
 
@@ -13,8 +13,10 @@ Please consider [supporting me](https://ko-fi.com/tydorius) if you like what I'm
 ## Features
 
 - Character details displayed in popup before starting chat
-- Collapsible sections for spoiler-sensitive content
+- Collapsible sections for all character fields
+- Multiple first message support with swipe navigation (or accordion style)
 - Markdown rendering for description and first message fields
+- Configurable default expanded tabs
 - Full character data: name, avatar, description, first message, scenario, personality, creator notes, example messages
 - Theme integration with customizable colors and blur effects
 - Bulk edit mode compatibility
@@ -38,13 +40,15 @@ Please consider [supporting me](https://ko-fi.com/tydorius) if you like what I'm
 
 ## Usage
 
-Click any character card to open the preview popup. Description section expands by default. Other sections (First Message, Scenario, Personality, Creator Notes, Example Messages) remain collapsed.
+Click any character card to open the preview popup. Use the collapsible sections to view different parts of the character card.
 
 **Actions:**
 - Click Start Chat to begin conversation
 - Click Close, press Escape, or click outside popup to dismiss
-- Character panel remains open after closing popup
 - Hold SHIFT while clicking character card to bypass popup and start chat directly
+
+**Multiple First Messages:**
+Characters with alternate greetings display navigation arrows in the First Message section. Click the arrows to cycle through available messages. The counter shows your position (e.g., "First Message (2/5)").
 
 ## Configuration
 
@@ -65,11 +69,15 @@ Access settings via Extensions panel. Available options:
 - Blur strength
 - Primary and secondary button colors (theme or custom)
 
+### Behavior
+- Accordion style first message(s): Shows all first messages as separate collapsible sections instead of swipe navigation
+- Default expanded tabs: Choose which sections are expanded when the popup opens
+
 ## Compatibility
 
 - SillyTavern 1.13.4 or higher
 - Compatible with all SillyTavern themes
-- Supports lazy loading configuration (lazyLoadCharacters: true)
+- Supports lazy loading configuration
 - Works with user profile directories
 
 ## Technical Details
